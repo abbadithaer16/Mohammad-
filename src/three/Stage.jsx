@@ -9,7 +9,7 @@ const PLINTH_H = 0.7;
 
 // --- backdrop: near-black studio sweep with a warm pool under the lamp -------
 const backdropShader = {
-  uniforms: { uLamp: { value: 0 }, uHaze: { value: 0 }, uTime: { value: 0 } },
+  uniforms: { uLamp: { value: 0 }, uHaze: { value: 0 }, uTime: { value: 0 }, uFlood: { value: 0 }, uHue: { value: 0 } },
   vertexShader: /* glsl */ `
     varying vec3 vWorld;
     void main() {
@@ -18,7 +18,7 @@ const backdropShader = {
       gl_Position = projectionMatrix * viewMatrix * w;
     }`,
   fragmentShader: /* glsl */ `
-    uniform float uLamp; uniform float uHaze; uniform float uTime;
+    uniform float uLamp; uniform float uHaze; uniform float uTime; uniform float uFlood; uniform float uHue;
     varying vec3 vWorld;
     float hash(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
     void main() {
@@ -33,6 +33,27 @@ const backdropShader = {
       col += vec3(0.060, 0.040, 0.024) * exp(-dot(q, q) * 2.2) * uLamp;
       // faint horizon where the studio floor would meet the wall
       col += vec3(0.020, 0.014, 0.009) * exp(-pow((vWorld.y + 0.15) * 1.8, 2.0)) * uHaze * pool;
+      // SCENE 2 · colour flood. A warm front expands outward from the plinth
+      // (behind the bottle's base) across the studio wall; inside it the wall
+      // takes a deep-amber core -> smoked-brown -> muted-bronze falloff. The
+      // leading edge carries a faint brighter band so the spread reads as light
+      // travelling, not a crossfade.
+      vec2 fo = (vWorld.xy - vec2(0.0, 0.15)) * vec2(0.62, 1.0);
+      float fr = length(fo);
+      float front = mix(-1.0, 9.0, uFlood);
+      float inside = 1.0 - smoothstep(front - 2.6, front, fr);
+      float edgeBand = inside * smoothstep(front - 2.6, front - 0.4, fr) * (1.0 - uFlood);
+      vec3 core = vec3(0.060, 0.026, 0.0075);  // deep warm amber
+      vec3 mid  = vec3(0.019, 0.009, 0.0038);  // smoked brown
+      vec3 edge = vec3(0.012, 0.008, 0.0045);  // muted bronze into near-black
+      // SCENE 4 · the same room turns richer: amber -> red-brown
+      core = mix(core, vec3(0.064, 0.019, 0.0075), uHue);
+      mid = mix(mid, vec3(0.020, 0.0068, 0.0038), uHue);
+      vec3 flood = mix(edge, mid, exp(-fr * 0.42));
+      flood = mix(flood, core, exp(-fr * fr * 0.16));
+      col = mix(col, max(col, flood), inside);
+      col += core * 0.25 * edgeBand;
+
       // dither: removes banding in the dark gradient
       col += (hash(gl_FragCoord.xy + fract(uTime)) - 0.5) / 255.0;
       gl_FragColor = vec4(col, 1.0);
@@ -42,12 +63,12 @@ const backdropShader = {
 
 // --- haze: slow fbm sheets, additive, lit by the lamp -----------------------
 const hazeShader = {
-  uniforms: { uTime: { value: 0 }, uAmount: { value: 0 }, uSeed: { value: 0 } },
+  uniforms: { uTime: { value: 0 }, uAmount: { value: 0 }, uSeed: { value: 0 }, uWarm: { value: 0 }, uHue: { value: 0 } },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
     void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: /* glsl */ `
-    uniform float uTime; uniform float uAmount; uniform float uSeed;
+    uniform float uTime; uniform float uAmount; uniform float uSeed; uniform float uWarm; uniform float uHue;
     varying vec2 vUv;
     float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     float noise(vec2 p) {
@@ -62,7 +83,8 @@ const hazeShader = {
       float n = fbm(p + vec2(t, -t * 0.4) + fbm(p * 0.7 - t) * 0.9);
       float shape = smoothstep(0.38, 0.85, n);
       float edge = smoothstep(0.0, 0.3, vUv.x) * smoothstep(1.0, 0.7, vUv.x) * smoothstep(0.0, 0.35, vUv.y) * smoothstep(1.0, 0.55, vUv.y);
-      vec3 tint = vec3(0.92, 0.74, 0.52);
+      vec3 tint = mix(vec3(0.92, 0.74, 0.52), vec3(1.0, 0.62, 0.30), uWarm); // haze picks up the amber
+      tint = mix(tint, vec3(1.0, 0.48, 0.30), uHue);
       gl_FragColor = vec4(tint * shape * edge * uAmount, 1.0);
     }`,
 };
@@ -134,14 +156,20 @@ export default function Stage({ tier }) {
     backdrop.uniforms.uLamp.value = stage.lamp;
     backdrop.uniforms.uHaze.value = stage.haze;
     backdrop.uniforms.uTime.value = t;
+    backdrop.uniforms.uFlood.value = stage.flood;
+    backdrop.uniforms.uHue.value = stage.hue;
     cone.uniforms.uAmount.value = stage.lamp * 0.05;
     hazeMats.forEach((m, i) => {
       m.uniforms.uTime.value = t;
-      m.uniforms.uAmount.value = stage.haze * (0.25 + 0.75 * stage.lamp) * HAZE_LAYERS[i].weight;
+      m.uniforms.uAmount.value = stage.haze * (0.25 + 0.75 * stage.lamp) * HAZE_LAYERS[i].weight * (1 + stage.flood * 0.4);
+      m.uniforms.uWarm.value = stage.flood;
+      m.uniforms.uHue.value = stage.hue;
     });
     // the shadow exists because light exists: it follows the key + fill
     shadow.current.material.opacity = Math.min(1, stage.lamp * 0.65 + stage.fill * 0.35);
-    glow.current.material.opacity = stage.plinth;
+    // plinth glow brightens and spreads as the flood takes the room
+    glow.current.material.opacity = stage.plinth * (1 + stage.flood * 0.6);
+    glow.current.scale.setScalar(1 + stage.flood * 0.2); // stays within the plinth top
     goldLine.current.emissiveIntensity = 0.08 + stage.plinth * 0.25;
   });
 

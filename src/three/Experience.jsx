@@ -38,7 +38,8 @@ export default function Experience({ tierName }) {
         dpr={dpr}
         camera={{ fov: 30, near: 0.05, far: 40, position: [0, 0.56, 3.3] }}
         gl={{ antialias: true, powerPreference: 'high-performance', alpha: false }}
-        onCreated={({ gl }) => {
+        onCreated={({ gl, scene, camera }) => {
+          if (new URLSearchParams(window.location.search).has('debug')) window.__r3f = { scene, camera };
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.05;
         }}

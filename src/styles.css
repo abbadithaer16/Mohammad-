@@ -520,3 +520,161 @@ main {
     animation: none;
   }
 }
+
+/* ---------- scroll lock during the opening shot ---------- */
+html.is-locked,
+html.is-locked body {
+  overflow: hidden;
+}
+
+/* ---------- pinned journey frame ---------- */
+.pin-frame {
+  position: relative;
+  height: 100svh;
+  min-height: 560px;
+}
+
+.scroll-cue-wrap {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ---------- scene 2 · editorial block ---------- */
+.scene2 {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--gutter);
+  pointer-events: none;
+}
+
+.scene2-copy {
+  width: var(--copy-max-2);
+  max-width: var(--copy-max-2);
+  margin-top: 4vh;
+}
+
+.scene2-rule {
+  display: block;
+  width: 44px;
+  height: 1px;
+  margin-bottom: clamp(20px, 3.6vh, 34px);
+  background: var(--gold-soft);
+}
+
+.scene2-headline {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: min(6vh, calc(var(--copy-max-2) / 8.6), 64px);
+  line-height: 1.04;
+  letter-spacing: 0.02em;
+  color: var(--ivory);
+}
+
+.scene2-lede {
+  margin: clamp(18px, 3.2vh, 30px) 0 0;
+  font-size: clamp(13px, 1.02vw, 15px);
+  font-weight: 350;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
+  color: var(--ivory-dim);
+}
+
+[data-layout='portrait'] .scene2 {
+  align-items: flex-start;
+  padding-top: calc(env(safe-area-inset-top) + clamp(76px, 11vh, 108px));
+}
+
+[data-layout='portrait'] .scene2-copy {
+  width: 100%;
+  max-width: none;
+  margin-top: 0;
+}
+
+[data-layout='portrait'] .scene2-rule {
+  margin-bottom: clamp(12px, 2vh, 18px);
+}
+
+[data-layout='portrait'] .scene2-headline {
+  font-size: min(8.4vw, 4.3vh, 44px);
+}
+
+[data-layout='portrait'] .scene2-lede {
+  margin-top: clamp(10px, 1.8vh, 16px);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* ---------- scenes 3–4 · fragrance chapters ---------- */
+.notes {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--gutter);
+  pointer-events: none;
+}
+
+.notes-copy {
+  width: var(--copy-max-2);
+  max-width: var(--copy-max-2);
+  margin-top: 4vh;
+}
+
+.notes-label {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 clamp(18px, 3.4vh, 32px);
+  font-size: 10.5px;
+  font-weight: 450;
+  letter-spacing: 0.34em;
+  color: var(--gold);
+}
+
+.notes-index {
+  font-variant-numeric: tabular-nums;
+  color: var(--gold-soft);
+  letter-spacing: 0.2em;
+}
+
+.notes-rule {
+  display: inline-block;
+  width: 36px;
+  height: 1px;
+  background: var(--gold-soft);
+}
+
+.notes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: min(6.4vh, calc(var(--copy-max-2) / 7.4), 66px);
+  line-height: 1.08;
+  letter-spacing: 0.03em;
+}
+
+[data-layout='portrait'] .notes {
+  align-items: flex-start;
+  padding-top: calc(env(safe-area-inset-top) + clamp(76px, 11vh, 108px));
+}
+
+[data-layout='portrait'] .notes-copy {
+  width: 100%;
+  max-width: none;
+  margin-top: 0;
+}
+
+[data-layout='portrait'] .notes-label {
+  margin-bottom: clamp(10px, 1.8vh, 16px);
+  font-size: 9.5px;
+}
+
+[data-layout='portrait'] .notes-list {
+  font-size: min(8.6vw, 4.2vh, 44px);
+}

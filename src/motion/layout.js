@@ -34,9 +34,27 @@ export function computeLayout(w, h) {
     l = { mode: 'wide', startFraction: 0.68, endFraction: 0.82, shiftX: 0.17, shiftY: 0.035 };
   }
 
+  // SCENE 2 pose: much closer, lower, a few degrees of 3/4 orbit
+  if (portrait) {
+    Object.assign(l, { pushFraction: 0.72, pushShiftX: 0, pushShiftY: 0.2 });
+  } else if (compact) {
+    Object.assign(l, { pushFraction: 0.92, pushShiftX: 0.21, pushShiftY: 0.02 });
+  } else {
+    Object.assign(l, { pushFraction: 0.98, pushShiftX: 0.2, pushShiftY: 0.012 });
+  }
+  l.pushLift = -0.09; // camera drops below the bottle's centre: low, monumental angle
+  l.pushTargetY = 0.53;
+  l.pushYaw = (7 * Math.PI) / 180; // camera orbits 7° to the right
+  // SCENE 3/4 refinements of the close pose
+  l.focusTargetY = 0.1; // Scene 3: aim 0.1u higher (upper bottle)
+  l.focusLift = 0.05;
+  l.arcYaw = (11 * Math.PI) / 180; // Scene 4: arc a further 11° (7° -> 18°)
+  l.arcLift = -0.06; // and settle a touch lower
+
   l.fov = FOV;
   l.dStart = distanceFor(l.startFraction);
   l.dEnd = distanceFor(l.endFraction);
+  l.dPush = distanceFor(l.pushFraction);
   l.targetY = 0.5;
   l.camLift = 0.06; // camera sits a touch above the bottle's centre
   l.parallax = portrait ? 0.5 : 1; // smaller motion amplitude on mobile
@@ -44,5 +62,6 @@ export function computeLayout(w, h) {
   // bottle's left edge in the final pose (px), used to size the copy column
   const bottleWpx = l.endFraction * h * BOTTLE_ASPECT;
   l.bottleLeftPx = (0.5 + l.shiftX) * w - bottleWpx / 2;
+  l.pushBottleLeftPx = (0.5 + l.pushShiftX) * w - (l.pushFraction * h * BOTTLE_ASPECT) / 2;
   return l;
 }

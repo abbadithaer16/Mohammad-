@@ -19,12 +19,18 @@ const MAX = {
   env: 0.55,
   plinth: 0.75,
   sweep: 66,
+  side: 13,
+  collar: 10,
+  scan: 70,
+  low: 14,
 };
 
 // Bottle centre in world space (bottle is 1u tall, base on y = 0).
 const AIM = new THREE.Vector3(0, 0.5, 0);
 const PLINTH_UP = new THREE.Vector3(0, 5, 0.4);
 const SWEEP_AIM = new THREE.Vector3(0, 0.8, 0);
+const COLLAR = new THREE.Vector3(0, 0.79, 0);
+const LOW_AIM = new THREE.Vector3(0, 0.38, 0);
 
 // Custom studio environment: these shapes ARE the reflections the black glass
 // and gold show, so they are composed like a real product-photography set.
@@ -57,6 +63,10 @@ export default function Lighting() {
   const fill = useRef();
   const plinth = useRef();
   const sweep = useRef();
+  const side = useRef();
+  const collar = useRef();
+  const scan = useRef();
+  const low = useRef();
 
   useEffect(() => {
     lamp.current.lookAt(0, 0.35, 0);
@@ -64,15 +74,24 @@ export default function Lighting() {
     rimR.current.lookAt(AIM);
     fill.current.lookAt(AIM);
     plinth.current.lookAt(PLINTH_UP);
+    side.current.lookAt(AIM);
+    collar.current.lookAt(COLLAR);
+    low.current.lookAt(LOW_AIM);
   }, []);
 
   useFrame(() => {
     scene.environmentIntensity = stage.env * MAX.env;
-    lamp.current.intensity = stage.lamp * MAX.lamp;
+    lamp.current.intensity = stage.lamp * MAX.lamp * (1 + stage.topBoost * 0.6);
     rimL.current.intensity = stage.rim * MAX.rimL;
     rimR.current.intensity = stage.rim * MAX.rimR;
-    fill.current.intensity = stage.fill * MAX.fill;
-    plinth.current.intensity = stage.plinth * MAX.plinth;
+    fill.current.intensity = stage.fill * stage.fillScale * MAX.fill;
+    plinth.current.intensity = stage.plinth * MAX.plinth * (1 + stage.flood * 0.4);
+    side.current.intensity = stage.side * MAX.side;
+    collar.current.intensity = stage.collar * MAX.collar;
+    scan.current.intensity = stage.scan * MAX.scan;
+    scan.current.position.y = stage.scanY;
+    scan.current.lookAt(0, stage.scanY - 0.08, 0);
+    low.current.intensity = stage.low * MAX.low;
     sweep.current.intensity = stage.sweepOn * MAX.sweep;
     sweep.current.position.x = stage.sweep;
     sweep.current.lookAt(SWEEP_AIM);
@@ -95,6 +114,20 @@ export default function Lighting() {
 
       {/* 4 · plinth glow: warm bounce rising from the plinth top */}
       <rectAreaLight ref={plinth} position={[0, 0.004, 0.25]} width={0.8} height={0.5} color="#c9944f" intensity={0} />
+
+      {/* SCENE 2 · warm amber side strip, camera-right and slightly behind:
+          rakes across the facets as the camera closes in */}
+      <rectAreaLight ref={side} position={[2.0, 0.95, 0.35]} width={0.45} height={2.2} color="#e3a463" intensity={0} />
+
+      {/* SCENE 2 · small softbox above-front, aimed at the collar only */}
+      <rectAreaLight ref={collar} position={[-0.45, 1.55, 1.25]} width={0.38} height={0.2} color="#ffe2bd" intensity={0} />
+
+      {/* SCENE 3 · light scan: a thin horizontal strip travelling down the
+          upper bottle; each row of facets flares as it passes */}
+      <rectAreaLight ref={scan} position={[0.25, 1.15, 1.7]} width={1.5} height={0.06} color="#ffe0b0" intensity={0} />
+
+      {/* SCENE 4 · low warm side light, camera-left: sensual, from below */}
+      <rectAreaLight ref={low} position={[-1.7, 0.18, 1.0]} width={0.5} height={1.0} color="#c8693b" intensity={0} />
 
       {/* mid-reveal sweep: a narrow warm strip aimed at the upper bottle
           (shoulder studs, collar, stopper) travelling left -> right */}

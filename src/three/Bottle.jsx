@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
-import { stage, pointer, TURN_START, TURN_END } from '../motion/stage';
+import { stage, pointer, TURN_START, TURN_END, TURN2_DELTA, TURN3_DELTA, TURN4_DELTA } from '../motion/stage';
 
 export const BOTTLE_URL = '/models/noire-bottle.glb';
 
@@ -287,15 +287,22 @@ export default function Bottle({ tier }) {
     [parts],
   );
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, dtRaw) => {
     uniforms.uMarkLight.value = stage.mark;
+    const dt = Math.min(dtRaw, 1 / 20);
     const t = clock.elapsedTime;
-    const base = THREE.MathUtils.lerp(TURN_START, TURN_END, stage.turn);
+    // Scene 1 turn, then Scene 2 (+10°), Scene 3 (+35°), Scene 4 (+35°)
+    const base =
+      THREE.MathUtils.lerp(TURN_START, TURN_END, stage.turn) +
+      TURN2_DELTA * stage.turn2 +
+      TURN3_DELTA * stage.turn3 +
+      TURN4_DELTA * stage.turn4;
     // breathing drift (±2.2°, 15 s) + pointer response (±2°), both gated by idle
     const drift = Math.sin((t / 15) * Math.PI * 2) * 0.038 + pointer.x * 0.035;
     const target = base + drift * stage.idle;
     const g = turnGroup.current;
-    g.rotation.y += (target - g.rotation.y) * 0.08;
+    // time-based damping: identical motion at 30, 60 or 120 Hz
+    g.rotation.y = THREE.MathUtils.damp(g.rotation.y, target, 4.8, dt);
   });
 
   return (

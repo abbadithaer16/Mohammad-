@@ -33,9 +33,12 @@ export default function HeroCopy() {
         </div>
       </div>
 
-      <div className="scroll-cue" data-reveal="fade" data-order="3" aria-hidden="true">
-        <span className="scroll-cue-line" />
-        <span className="scroll-cue-label">Scroll</span>
+      {/* wrapper: Scene 2 fades this layer, the intro animates the cue itself */}
+      <div className="scroll-cue-wrap">
+        <div className="scroll-cue" data-reveal="fade" data-order="3" aria-hidden="true">
+          <span className="scroll-cue-line" />
+          <span className="scroll-cue-label">Scroll</span>
+        </div>
       </div>
     </section>
   );

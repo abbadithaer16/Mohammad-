@@ -21,6 +21,28 @@ export const START = {
   sweep: -1.5, // x position of the travelling warm sweep strip
   sweepOn: 0, // its intensity envelope
   haze: 0.35, // atmosphere density
+
+  // SCENE 2 — colour flood + dolly-in. All neutral at 0 (or 1 for scales), so
+  // Scene 1 renders exactly as approved until the scroll timeline moves them.
+  push: 0, // 0 = Scene 1 hero pose, 1 = Scene 2 close, low, 3/4 pose
+  turn2: 0, // 0..1 -> extra bottle rotY (TURN2_DELTA)
+  flood: 0, // 0..1 warm amber environment spreading out from the plinth
+  side: 0, // warm side strip, camera-right
+  collar: 0, // narrow kicker on the champagne-gold collar
+  fillScale: 1, // multiplies the front fill (reduced as the camera gets close)
+
+  // SCENE 3 — top notes
+  turn3: 0, // 0..1 -> +TURN3_DELTA
+  focus: 0, // camera favours the upper bottle (stopper / collar / shoulder)
+  topBoost: 0, // brighter, warmer overhead light
+  scan: 0, // horizontal light-scan strip intensity
+  scanY: 1.15, // its height, in bottle units (base = 0, stopper top = 1)
+
+  // SCENE 4 — heart notes
+  turn4: 0, // 0..1 -> +TURN4_DELTA
+  arc: 0, // subtle camera arc (yaw) + lower eye line
+  low: 0, // low, warm side light
+  hue: 0, // atmosphere shifts amber -> red-brown
 };
 
 export const stage = { ...START };
@@ -44,6 +66,9 @@ export const HERO = {
 
 export const TURN_START = (-9 * Math.PI) / 180;
 export const TURN_END = (-5 * Math.PI) / 180;
+export const TURN2_DELTA = (10 * Math.PI) / 180; // Scene 2: -5° -> +5°
+export const TURN3_DELTA = (35 * Math.PI) / 180; // Scene 3: +5° -> +40°
+export const TURN4_DELTA = (35 * Math.PI) / 180; // Scene 4: +40° -> +75°
 
 // pointer, normalised -1..1, written by a window listener
 export const pointer = { x: 0, y: 0 };
