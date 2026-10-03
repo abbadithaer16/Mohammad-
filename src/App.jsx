@@ -1,122 +1,75 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import Experience from './three/Experience';
+import { detectTier } from './three/quality';
+import { computeLayout } from './motion/layout';
+import { sceneReady, pointer } from './motion/stage';
+import { playIntro } from './motion/introTimeline';
+import Header from './components/Header';
+import HeroCopy from './components/HeroCopy';
+import Footer from './components/Footer';
 
-function App() {
-  const [count, setCount] = useState(0)
+const tierName = detectTier();
+
+export default function App() {
+  const rootRef = useRef(null);
+  const [layoutMode, setLayoutMode] = useState(() => computeLayout(window.innerWidth, window.innerHeight).mode);
+  const [ready, setReady] = useState(false);
+
+  // copy column never reaches the bottle: its width is derived from the
+  // bottle's projected left edge in the final hero pose
+  useLayoutEffect(() => {
+    const apply = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const l = computeLayout(w, h);
+      const root = document.documentElement;
+      const gutter = Math.max(24, w * 0.07);
+      root.style.setProperty('--gutter', `${gutter}px`);
+      root.style.setProperty('--copy-max', `${Math.max(240, Math.min(600, l.bottleLeftPx - gutter - w * 0.04))}px`);
+      setLayoutMode(l.mode);
+    };
+    apply();
+    window.addEventListener('resize', apply);
+    return () => window.removeEventListener('resize', apply);
+  }, []);
+
+  useEffect(() => {
+    const onMove = (e) => {
+      pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+      pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
+    };
+    window.addEventListener('pointermove', onMove, { passive: true });
+    return () => window.removeEventListener('pointermove', onMove);
+  }, []);
+
+  useEffect(() => {
+    let tl;
+    let cancelled = false;
+    sceneReady.then(() => {
+      if (cancelled) return;
+      setReady(true);
+      tl = playIntro(rootRef.current);
+      // ?at=1.6 freezes the reveal at a given second (review / screenshots)
+      const at = parseFloat(new URLSearchParams(window.location.search).get('at'));
+      if (!Number.isNaN(at)) tl.pause(at);
+    });
+    return () => {
+      cancelled = true;
+      tl?.kill();
+    };
+  }, []);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    <div ref={rootRef} className="app" data-layout={layoutMode} data-ready={ready}>
+      <Experience tierName={tierName} />
+      <div className="grain" aria-hidden="true" />
+      <div className="vignette" aria-hidden="true" />
+      <div className="loader" aria-hidden="true"><span /></div>
+      <Header />
+      <main>
+        <HeroCopy />
+      </main>
+      <Footer />
+    </div>
+  );
 }
-
-export default App
