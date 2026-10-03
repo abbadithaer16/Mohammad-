@@ -678,3 +678,41 @@ html.is-locked body {
 [data-layout='portrait'] .notes-list {
   font-size: min(8.6vw, 4.2vh, 44px);
 }
+
+/* ---------- scene 6 · macro microcopy (small, secondary) ---------- */
+.macro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 var(--gutter) clamp(28px, 7vh, 64px);
+  pointer-events: none;
+}
+
+.macro-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 400;
+  line-height: 1.9;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ivory-faint);
+}
+
+.macro-rule {
+  display: block;
+  width: 28px;
+  height: 1px;
+  margin-bottom: 12px;
+  background: var(--gold-hair);
+}
+
+/* on a phone the macro fills the lower frame: microcopy sits under the header */
+[data-layout='portrait'] .macro {
+  align-items: flex-start;
+  padding-top: calc(env(safe-area-inset-top) + clamp(76px, 11vh, 108px));
+  padding-bottom: 0;
+}

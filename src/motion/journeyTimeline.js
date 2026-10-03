@@ -15,8 +15,11 @@ export const SCENES = {
   s2: [0.0, 2.2], // colour flood + dolly-in
   s3: [2.2, 4.2], // top notes
   s4: [4.2, 6.2], // heart notes
+  s5: [6.2, 8.4], // base notes
+  s6: [8.4, 10.6], // cap / material macro
+  s7: [10.6, 12.6], // smoke interlude
 };
-export const JOURNEY_VH = SCENES.s4[1];
+export const JOURNEY_VH = SCENES.s7[1];
 
 const IVORY = 'rgba(236, 228, 216, 1)';
 const IVORY_DIM = 'rgba(236, 228, 216, 0.42)';
@@ -33,6 +36,7 @@ export function createJourney(frame) {
   gsap.set(q('[data-s2="rule"], [data-n="rule"]'), { scaleX: 0, transformOrigin: 'left center' });
   gsap.set(q('[data-n="label"]'), { autoAlpha: 0 });
   gsap.set(q('[data-n="line"]'), { color: IVORY_DIM });
+  gsap.set(q('[data-m="fade"]'), { autoAlpha: 0, y: 10 });
 
   const tl = gsap.timeline({
     defaults: { immediateRender: false },
@@ -117,7 +121,97 @@ export function createJourney(frame) {
     tl.to(line, { color: IVORY, duration: 0.5, ease: 'sine.inOut' }, s4 + 0.95 + i * 0.14);
   });
   // 1.6 → 2.0 hold
-  tl.to({}, { duration: 0.01 }, SCENES.s4[1] - 0.01);
+
+  // =========================================================================
+  // SCENE 5 — BASE NOTES                         (6.2 → 8.4 vh)
+  // heavier, darker, lower: the bottle turns a slow +35° toward a dark profile,
+  // the camera settles lower and closer, upper light recedes, and each base
+  // note gets its own light state on the bottle
+  // =========================================================================
+  const s5 = SCENES.s5[0];
+  tl.fromTo(stage, { turn5: 0 }, { turn5: 1, duration: 1.55, ease: 'power3.inOut' }, s5 + 0.05)
+    .fromTo(stage, { deep: 0 }, { deep: 1, duration: 1.6, ease: 'power3.inOut' }, s5 + 0.05)
+    .fromTo(chapter(heart), { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -30, duration: 0.3, ease: 'power2.in' }, s5 + 0.15)
+    // upper / front brightness recedes, depth in the shadows
+    .fromTo(stage, { topBoost: 0.25 }, { topBoost: 0, duration: 0.8, ease: 'power2.inOut' }, s5 + 0.1)
+    .fromTo(stage, { envScale: 1 }, { envScale: 0.72, duration: 1.0, ease: 'power2.inOut' }, s5 + 0.1)
+    .fromTo(stage, { fillScale: 0.42 }, { fillScale: 0.3, duration: 0.9, ease: 'power2.inOut' }, s5 + 0.1)
+    .fromTo(stage, { low: 1 }, { low: 0.5, duration: 0.9, ease: 'power2.inOut' }, s5 + 0.3)
+    .fromTo(stage, { dim: 0 }, { dim: 0.25, duration: 1.2, ease: 'power2.inOut' }, s5 + 0.2);
+
+  const base = 'base';
+  tl.fromTo(inChapter(base, '[data-n="label"]'), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3, ease: 'power2.out' }, s5 + 0.5)
+    .fromTo(inChapter(base, '[data-n="rule"]'), { scaleX: 0 }, { scaleX: 1, duration: 0.4, ease: 'power4.out' }, s5 + 0.5)
+    .fromTo(inChapter(base, '[data-n="line"]'), { yPercent: 108 }, { yPercent: 0, duration: 0.5, ease: 'power4.out', stagger: 0.1 }, s5 + 0.58);
+
+  // ingredient beats: the bottle's light changes with each note, and the note
+  // line warms at the same moment (text follows the product, never leads)
+  const BEAT = { amber: s5 + 0.6, musk: s5 + 0.95, sandalwood: s5 + 1.28, vanilla: s5 + 1.6 };
+  // AMBER · rich warm glow low in the glass
+  tl.fromTo(stage, { baseGlow: 0 }, { baseGlow: 1, duration: 0.55, ease: 'power2.out' }, BEAT.amber);
+  // MUSK · softer, diffused: sharp rims dip, haze thickens, then recover partly
+  tl.fromTo(stage, { rimScale: 1 }, { rimScale: 0.55, duration: 0.32, ease: 'sine.inOut' }, BEAT.musk)
+    .fromTo(stage, { haze: 1.35 }, { haze: 1.75, duration: 0.4, ease: 'sine.inOut' }, BEAT.musk)
+    .fromTo(stage, { rimScale: 0.55 }, { rimScale: 0.85, duration: 0.4, ease: 'sine.inOut' }, BEAT.sandalwood);
+  // SANDALWOOD · woody brown atmosphere, directional side light
+  tl.fromTo(stage, { wood: 0 }, { wood: 1, duration: 0.6, ease: 'expo.inOut' }, BEAT.sandalwood)
+    .fromTo(stage, { sideScale: 1 }, { sideScale: 1.2, duration: 0.5, ease: 'power2.inOut' }, BEAT.sandalwood);
+  // VANILLA · a faint ivory-gold lift, never bright
+  tl.fromTo(stage, { ivory: 0 }, { ivory: 1, duration: 0.45, ease: 'power2.inOut' }, BEAT.vanilla);
+
+  inChapter(base, '[data-n="line"]').forEach((line, i) => {
+    const at = Object.values(BEAT)[i] + 0.05;
+    tl.to(line, { color: GOLD_LIT, duration: 0.16, ease: 'sine.out' }, at).to(line, { color: IVORY, duration: 0.4, ease: 'sine.inOut' }, at + 0.18);
+  });
+  // 2.0 → 2.2 hold
+
+  // =========================================================================
+  // SCENE 6 — CAP / MATERIAL MACRO               (8.4 → 10.6 vh)
+  // the camera physically travels up to the stopper + collar: push in, rise,
+  // a further ~6° arc, lens tightens to 24°. Focus racks stopper -> collar ->
+  // glass edge while a warm sweep crosses the gold.
+  // =========================================================================
+  const s6 = SCENES.s6[0];
+  tl.fromTo(stage, { macro: 0 }, { macro: 1, duration: 1.5, ease: 'power3.inOut' }, s6 + 0.05)
+    .fromTo(stage, { turn6: 0 }, { turn6: 1, duration: 1.9, ease: 'sine.inOut' }, s6 + 0.1)
+    .fromTo(chapter(base), { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -30, duration: 0.3, ease: 'power2.in' }, s6 + 0.12)
+    .fromTo(stage, { dim: 0.25 }, { dim: 0.7, duration: 1.0, ease: 'power2.inOut' }, s6 + 0.1)
+    .fromTo(stage, { low: 0.5 }, { low: 0, duration: 0.8, ease: 'power2.inOut' }, s6 + 0.2)
+    .fromTo(stage, { baseGlow: 1 }, { baseGlow: 0.3, duration: 0.8, ease: 'power2.inOut' }, s6 + 0.2)
+    .fromTo(stage, { rimScale: 0.85 }, { rimScale: 1.1, duration: 0.8, ease: 'power2.inOut' }, s6 + 0.4)
+    // focus: arrives on the stopper as the camera lands, then racks
+    .fromTo(stage, { dof: 0 }, { dof: 1, duration: 0.5, ease: 'power2.out' }, s6 + 0.7)
+    .fromTo(stage, { rack: 0 }, { rack: 1, duration: 0.35, ease: 'power2.inOut' }, s6 + 1.15)
+    .fromTo(stage, { rack: 1 }, { rack: 2, duration: 0.35, ease: 'power2.inOut' }, s6 + 1.65)
+    // warm gold sweep across the collar
+    .fromTo(stage, { sweep: -1.5 }, { sweep: 1.5, duration: 0.9, ease: 'power2.inOut' }, s6 + 1.0)
+    .fromTo(stage, { sweepOn: 0 }, { sweepOn: 0.8, duration: 0.2, ease: 'sine.out' }, s6 + 1.0)
+    .fromTo(stage, { sweepOn: 0.8 }, { sweepOn: 0, duration: 0.25, ease: 'sine.in' }, s6 + 1.65)
+    .fromTo(q('[data-m="fade"]'), { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power3.out' }, s6 + 1.1);
+  // 2.0 → 2.2 hold
+
+  // =========================================================================
+  // SCENE 7 — SMOKE INTERLUDE                    (10.6 → 12.6 vh)
+  // breathe out: the camera retreats to a wide, centred pose, focus opens,
+  // highlights soften, the room deepens and dark smoke rises around a bottle
+  // that now seems suspended. A huge, unfocused NOIRÉ hangs behind it.
+  // =========================================================================
+  const s7 = SCENES.s7[0];
+  tl.fromTo(stage, { breathe: 0 }, { breathe: 1, duration: 1.6, ease: 'power3.inOut' }, s7 + 0.05)
+    .fromTo(stage, { turn7: 0 }, { turn7: 1, duration: 1.9, ease: 'sine.out' }, s7 + 0.05)
+    .fromTo(stage, { dof: 1 }, { dof: 0, duration: 0.5, ease: 'power2.inOut' }, s7 + 0.05)
+    .fromTo(q('[data-m="fade"]'), { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -10, duration: 0.3, ease: 'power2.in' }, s7 + 0.1)
+    .fromTo(stage, { smoke: 0 }, { smoke: 1, duration: 1.2, ease: 'power2.inOut' }, s7 + 0.2)
+    .fromTo(stage, { haze: 1.75 }, { haze: 2.3, duration: 1.2, ease: 'sine.inOut' }, s7 + 0.2)
+    .fromTo(stage, { dim: 0.7 }, { dim: 1, duration: 1.0, ease: 'power2.inOut' }, s7 + 0.3)
+    .fromTo(stage, { rimScale: 1.1 }, { rimScale: 0.6, duration: 1.0, ease: 'power2.inOut' }, s7 + 0.3)
+    .fromTo(stage, { sideScale: 1.2 }, { sideScale: 0.7, duration: 1.0, ease: 'power2.inOut' }, s7 + 0.3)
+    .fromTo(stage, { envScale: 0.72 }, { envScale: 0.55, duration: 1.0, ease: 'power2.inOut' }, s7 + 0.3)
+    .fromTo(stage, { collar: 1 }, { collar: 0.4, duration: 0.9, ease: 'power2.inOut' }, s7 + 0.3)
+    .fromTo(stage, { plinth: 1 }, { plinth: 0.15, duration: 1.0, ease: 'power2.inOut' }, s7 + 0.3)
+    .fromTo(stage, { word: 0 }, { word: 1, duration: 1.0, ease: 'power2.inOut' }, s7 + 0.55);
+  // 1.65 → 2.0 hold: a breath
+  tl.to({}, { duration: 0.01 }, SCENES.s7[1] - 0.01);
 
   return tl;
 }

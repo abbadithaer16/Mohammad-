@@ -12,6 +12,6 @@ export function detectTier() {
 }
 
 export const TIERS = {
-  high: { maxDpr: 1.75, transmission: true, reflector: true, hazeLayers: 4, bloom: true },
-  low: { maxDpr: 1.35, transmission: false, reflector: false, hazeLayers: 2, bloom: false },
+  high: { maxDpr: 1.75, transmission: true, reflector: true, hazeLayers: 4, bloom: true, smokeLayers: 4, dof: true },
+  low: { maxDpr: 1.35, transmission: false, reflector: false, hazeLayers: 2, bloom: false, smokeLayers: 2, dof: false },
 };

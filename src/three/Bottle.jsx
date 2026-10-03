@@ -2,7 +2,18 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
-import { stage, pointer, TURN_START, TURN_END, TURN2_DELTA, TURN3_DELTA, TURN4_DELTA } from '../motion/stage';
+import {
+  stage,
+  pointer,
+  TURN_START,
+  TURN_END,
+  TURN2_DELTA,
+  TURN3_DELTA,
+  TURN4_DELTA,
+  TURN5_DELTA,
+  TURN6_DELTA,
+  TURN7_DELTA,
+} from '../motion/stage';
 
 export const BOTTLE_URL = '/models/noire-bottle.glb';
 
@@ -291,12 +302,15 @@ export default function Bottle({ tier }) {
     uniforms.uMarkLight.value = stage.mark;
     const dt = Math.min(dtRaw, 1 / 20);
     const t = clock.elapsedTime;
-    // Scene 1 turn, then Scene 2 (+10°), Scene 3 (+35°), Scene 4 (+35°)
+    // Scene 1 turn, then +10° (S2), +35° (S3), +35° (S4), +35° (S5), +12° (S6), +10° (S7)
     const base =
       THREE.MathUtils.lerp(TURN_START, TURN_END, stage.turn) +
       TURN2_DELTA * stage.turn2 +
       TURN3_DELTA * stage.turn3 +
-      TURN4_DELTA * stage.turn4;
+      TURN4_DELTA * stage.turn4 +
+      TURN5_DELTA * stage.turn5 +
+      TURN6_DELTA * stage.turn6 +
+      TURN7_DELTA * stage.turn7;
     // breathing drift (±2.2°, 15 s) + pointer response (±2°), both gated by idle
     const drift = Math.sin((t / 15) * Math.PI * 2) * 0.038 + pointer.x * 0.035;
     const target = base + drift * stage.idle;

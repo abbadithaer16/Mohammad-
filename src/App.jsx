@@ -8,6 +8,7 @@ import Header from './components/Header';
 import HeroCopy from './components/HeroCopy';
 import Scene2Copy from './components/Scene2Copy';
 import NotesCopy from './components/NotesCopy';
+import MacroCopy from './components/MacroCopy';
 import { createJourney } from './motion/journeyTimeline';
 import Footer from './components/Footer';
 
@@ -104,6 +105,8 @@ export default function App() {
           <Scene2Copy />
           <NotesCopy chapter="TOP" index="01" notes={['BERGAMOT', 'PINK PEPPER', 'SAFFRON']} />
           <NotesCopy chapter="HEART" index="02" notes={['ROSE', 'JASMINE', 'OUD']} />
+          <NotesCopy chapter="BASE" index="03" notes={['AMBER', 'MUSK', 'SANDALWOOD', 'VANILLA']} />
+          <MacroCopy />
         </div>
       </main>
       <Footer />

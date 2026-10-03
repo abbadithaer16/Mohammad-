@@ -43,6 +43,29 @@ export const START = {
   arc: 0, // subtle camera arc (yaw) + lower eye line
   low: 0, // low, warm side light
   hue: 0, // atmosphere shifts amber -> red-brown
+
+  // SCENE 5 — base notes (heavier, darker, lower)
+  turn5: 0, // 0..1 -> +TURN5_DELTA, toward a darker profile
+  deep: 0, // camera: a touch lower, 5% closer, 3° lateral drift
+  baseGlow: 0, // AMBER: warm glow behind / through the lower glass
+  rimScale: 1, // MUSK: softens rims + side light (and later, the smoke)
+  wood: 0, // SANDALWOOD: atmosphere turns woody brown
+  sideScale: 1, // SANDALWOOD: directional side light strengthens
+  ivory: 0, // VANILLA: faint ivory-gold lift in the haze
+  envScale: 1, // multiplies studio reflections (upper/front brightness)
+
+  // SCENE 6 — cap / material macro
+  turn6: 0, // 0..1 -> +TURN6_DELTA, slow, so reflections crawl over facets
+  macro: 0, // camera travels to the stopper / collar macro pose
+  dof: 0, // depth-of-field strength (high tier only)
+  rack: 0, // focus target: 0 stopper -> 1 gold collar -> 2 glass edge
+  dim: 0, // background falls toward black
+
+  // SCENE 7 — smoke interlude
+  turn7: 0, // 0..1 -> +TURN7_DELTA, the rotation slowing to rest
+  breathe: 0, // camera retreats to a centred, wider pose
+  smoke: 0, // dark warm smoke sheets + soft light shaft
+  word: 0, // the huge out-of-focus NOIRÉ behind the bottle
 };
 
 export const stage = { ...START };
@@ -69,6 +92,9 @@ export const TURN_END = (-5 * Math.PI) / 180;
 export const TURN2_DELTA = (10 * Math.PI) / 180; // Scene 2: -5° -> +5°
 export const TURN3_DELTA = (35 * Math.PI) / 180; // Scene 3: +5° -> +40°
 export const TURN4_DELTA = (35 * Math.PI) / 180; // Scene 4: +40° -> +75°
+export const TURN5_DELTA = (35 * Math.PI) / 180; // Scene 5: +75° -> +110°
+export const TURN6_DELTA = (12 * Math.PI) / 180; // Scene 6: +110° -> +122°
+export const TURN7_DELTA = (10 * Math.PI) / 180; // Scene 7: +122° -> +132°
 
 // pointer, normalised -1..1, written by a window listener
 export const pointer = { x: 0, y: 0 };

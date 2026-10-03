@@ -51,6 +51,28 @@ export function computeLayout(w, h) {
   l.arcYaw = (11 * Math.PI) / 180; // Scene 4: arc a further 11° (7° -> 18°)
   l.arcLift = -0.06; // and settle a touch lower
 
+  // SCENE 5 · relative refinements of the close pose
+  l.deepLift = -0.05;
+  l.deepPush = 0.05; // 5% closer
+  l.deepYaw = (3 * Math.PI) / 180;
+
+  // SCENE 6 · absolute macro pose: stopper + collar + upper glass edge
+  l.macroTargetY = 0.8;
+  l.macroCamY = 0.9; // rises above the collar line
+  l.macroYaw = (27 * Math.PI) / 180; // arcs a further ~6°
+  l.macroFov = 24; // slight telephoto compression
+  l.macroDist = portrait ? 1.8 : 1.0;
+  l.macroShiftX = portrait ? 0 : 0.12;
+  l.macroShiftY = portrait ? 0.04 : 0;
+
+  // SCENE 7 · absolute breathing pose: wider, centred, eye level
+  l.breatheTargetY = 0.5;
+  l.breatheCamY = 0.54;
+  l.breatheYaw = (14 * Math.PI) / 180;
+  l.breatheDist = distanceFor(portrait ? 0.4 : 0.5);
+  l.breatheShiftX = portrait ? 0 : 0.05;
+  l.breatheShiftY = portrait ? 0.07 : 0.01;
+
   l.fov = FOV;
   l.dStart = distanceFor(l.startFraction);
   l.dEnd = distanceFor(l.endFraction);

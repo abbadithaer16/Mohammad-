@@ -9,7 +9,7 @@ const PLINTH_H = 0.7;
 
 // --- backdrop: near-black studio sweep with a warm pool under the lamp -------
 const backdropShader = {
-  uniforms: { uLamp: { value: 0 }, uHaze: { value: 0 }, uTime: { value: 0 }, uFlood: { value: 0 }, uHue: { value: 0 } },
+  uniforms: { uLamp: { value: 0 }, uHaze: { value: 0 }, uTime: { value: 0 }, uFlood: { value: 0 }, uHue: { value: 0 }, uWood: { value: 0 }, uDim: { value: 0 }, uBaseGlow: { value: 0 }, uBaseGlowPos: { value: new THREE.Vector2() } },
   vertexShader: /* glsl */ `
     varying vec3 vWorld;
     void main() {
@@ -19,6 +19,7 @@ const backdropShader = {
     }`,
   fragmentShader: /* glsl */ `
     uniform float uLamp; uniform float uHaze; uniform float uTime; uniform float uFlood; uniform float uHue;
+    uniform float uWood; uniform float uDim; uniform float uBaseGlow; uniform vec2 uBaseGlowPos;
     varying vec3 vWorld;
     float hash(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
     void main() {
@@ -49,10 +50,19 @@ const backdropShader = {
       // SCENE 4 · the same room turns richer: amber -> red-brown
       core = mix(core, vec3(0.064, 0.019, 0.0075), uHue);
       mid = mix(mid, vec3(0.020, 0.0068, 0.0038), uHue);
+      // SCENE 5 · SANDALWOOD: the room turns woody brown
+      core = mix(core, vec3(0.046, 0.023, 0.010), uWood);
+      mid = mix(mid, vec3(0.016, 0.0085, 0.0045), uWood);
       vec3 flood = mix(edge, mid, exp(-fr * 0.42));
       flood = mix(flood, core, exp(-fr * fr * 0.16));
       col = mix(col, max(col, flood), inside);
       col += core * 0.25 * edgeBand;
+      // SCENE 5 · AMBER: a low warm glow on the wall exactly behind the lower
+      // bottle (position projected per frame), seen through the glass
+      vec2 bg = (vWorld.xy - uBaseGlowPos) * vec2(0.55, 0.85);
+      col += vec3(0.105, 0.046, 0.012) * exp(-dot(bg, bg) * 1.3) * uBaseGlow;
+      // SCENES 6–7 · the background falls toward black
+      col *= 1.0 - 0.62 * uDim;
 
       // dither: removes banding in the dark gradient
       col += (hash(gl_FragCoord.xy + fract(uTime)) - 0.5) / 255.0;
@@ -63,12 +73,12 @@ const backdropShader = {
 
 // --- haze: slow fbm sheets, additive, lit by the lamp -----------------------
 const hazeShader = {
-  uniforms: { uTime: { value: 0 }, uAmount: { value: 0 }, uSeed: { value: 0 }, uWarm: { value: 0 }, uHue: { value: 0 } },
+  uniforms: { uTime: { value: 0 }, uAmount: { value: 0 }, uSeed: { value: 0 }, uWarm: { value: 0 }, uHue: { value: 0 }, uIvory: { value: 0 } },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
     void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: /* glsl */ `
-    uniform float uTime; uniform float uAmount; uniform float uSeed; uniform float uWarm; uniform float uHue;
+    uniform float uTime; uniform float uAmount; uniform float uSeed; uniform float uWarm; uniform float uHue; uniform float uIvory;
     varying vec2 vUv;
     float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     float noise(vec2 p) {
@@ -85,6 +95,7 @@ const hazeShader = {
       float edge = smoothstep(0.0, 0.3, vUv.x) * smoothstep(1.0, 0.7, vUv.x) * smoothstep(0.0, 0.35, vUv.y) * smoothstep(1.0, 0.55, vUv.y);
       vec3 tint = mix(vec3(0.92, 0.74, 0.52), vec3(1.0, 0.62, 0.30), uWarm); // haze picks up the amber
       tint = mix(tint, vec3(1.0, 0.48, 0.30), uHue);
+      tint = mix(tint, vec3(0.98, 0.88, 0.70), uIvory * 0.7); // VANILLA: ivory-gold lift
       gl_FragColor = vec4(tint * shape * edge * uAmount, 1.0);
     }`,
 };
@@ -151,8 +162,18 @@ export default function Stage({ tier }) {
   const glow = useRef();
   const goldLine = useRef();
 
-  useFrame(({ clock }) => {
+  const glowPoint = useMemo(() => new THREE.Vector3(), []);
+  const glowDir = useMemo(() => new THREE.Vector3(), []);
+
+  useFrame(({ clock, camera }) => {
     const t = clock.elapsedTime;
+    // project the lower bottle (0, 0.22, 0) from the camera onto the wall (z = -5)
+    glowDir.set(0, 0.22, 0).sub(camera.position);
+    glowPoint.copy(camera.position).addScaledVector(glowDir, (-5 - camera.position.z) / glowDir.z);
+    backdrop.uniforms.uBaseGlowPos.value.set(glowPoint.x, glowPoint.y);
+    backdrop.uniforms.uBaseGlow.value = stage.baseGlow;
+    backdrop.uniforms.uWood.value = stage.wood;
+    backdrop.uniforms.uDim.value = stage.dim;
     backdrop.uniforms.uLamp.value = stage.lamp;
     backdrop.uniforms.uHaze.value = stage.haze;
     backdrop.uniforms.uTime.value = t;
@@ -161,7 +182,8 @@ export default function Stage({ tier }) {
     cone.uniforms.uAmount.value = stage.lamp * 0.05;
     hazeMats.forEach((m, i) => {
       m.uniforms.uTime.value = t;
-      m.uniforms.uAmount.value = stage.haze * (0.25 + 0.75 * stage.lamp) * HAZE_LAYERS[i].weight * (1 + stage.flood * 0.4);
+      m.uniforms.uAmount.value = stage.haze * (0.25 + 0.75 * stage.lamp) * HAZE_LAYERS[i].weight * (1 + stage.flood * 0.4) * (1 - stage.dim * 0.4);
+      m.uniforms.uIvory.value = stage.ivory;
       m.uniforms.uWarm.value = stage.flood;
       m.uniforms.uHue.value = stage.hue;
     });
