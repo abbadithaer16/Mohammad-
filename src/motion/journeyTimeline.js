@@ -51,7 +51,8 @@ export function createJourney(frame) {
   const track = (self) => {
     const t = self.progress * JOURNEY_VH;
     const found = SCENE_ORDER.find(([, [a, b]]) => t >= a && t < b);
-    const name = self.progress <= 0 ? 's1' : found ? found[0] : 's9';
+    // the pin starts a sub-pixel early, so treat the first 5% of a viewport as the hero
+    const name = t < 0.05 ? 's1' : found ? found[0] : 's9';
     if (name === current) return;
     current = name;
     document.documentElement.dataset.scene = name;
@@ -90,7 +91,7 @@ export function createJourney(frame) {
   tl.fromTo(stage, { push: 0 }, { push: 1, duration: 1.9, ease: 'power3.inOut' }, 0)
     .fromTo(stage, { turn2: 0 }, { turn2: 1, duration: 1.9, ease: 'power3.inOut' }, 0.08)
     // hero copy steps back only once the camera is already moving
-    .fromTo(q('.hero-copy, .scroll-cue-wrap'), { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -36, duration: 0.48, ease: 'power2.in', stagger: 0.04 }, 0.09)
+    .fromTo(q('.hero-text, .hero-copy .ctas, .scroll-cue-wrap'), { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -36, duration: 0.48, ease: 'power2.in', stagger: 0.04 }, 0.09)
     .fromTo(stage, { flood: 0 }, { flood: 1, duration: 1.55, ease: 'expo.inOut' }, 0.22)
     .fromTo(stage, { fillScale: 1 }, { fillScale: 0.6, duration: 1.3, ease: 'power2.inOut' }, 0.26)
     .fromTo(stage, { side: 0 }, { side: 1, duration: 1.35, ease: 'power3.inOut' }, 0.35)

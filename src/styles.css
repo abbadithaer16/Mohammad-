@@ -131,6 +131,8 @@ a {
 
 /* ---------- header ---------- */
 .site-header {
+  opacity: var(--chrome-opacity, 1);
+  transition: opacity 0.2s linear;
   position: fixed;
   top: 0;
   left: 0;
@@ -978,7 +980,7 @@ html[data-scene='s8'] .drag-zone {
   margin: 0;
   font-family: var(--serif);
   font-weight: 400;
-  font-size: min(7.2vh, calc(var(--copy-max) / 9.4), 80px);
+  font-size: min(7vh, calc(var(--copy-max) / 10.6), 76px);
   white-space: nowrap;
   line-height: 1.02;
   letter-spacing: 0.015em;

@@ -3,25 +3,29 @@ const LINES = ['SCENT,', 'MADE TO', 'LINGER.'];
 export default function HeroCopy({ onDiscover, onShop }) {
   return (
     <section id="scene-1" className="hero" aria-labelledby="hero-title">
+      {/* .hero-copy itself is never transformed: on mobile the CTA row is
+          anchored to the hero, and a transformed parent would capture it */}
       <div className="hero-copy">
-        <p className="eyebrow" data-reveal="fade" data-order="0">
-          <span className="eyebrow-rule" data-reveal="rule" aria-hidden="true" />
-          NOIRÉ <span className="eyebrow-slash">/</span> SIGNATURE 01
-        </p>
+        <div className="hero-text">
+          <p className="eyebrow" data-reveal="fade" data-order="0">
+            <span className="eyebrow-rule" data-reveal="rule" aria-hidden="true" />
+            NOIRÉ <span className="eyebrow-slash">/</span> SIGNATURE 01
+          </p>
 
-        <h1 id="hero-title" className="headline" aria-label="Scent, made to linger.">
-          {LINES.map((line) => (
-            <span className="line" key={line} aria-hidden="true">
-              <span className="line-inner" data-reveal="line">
-                {line}
+          <h1 id="hero-title" className="headline" aria-label="Scent, made to linger.">
+            {LINES.map((line) => (
+              <span className="line" key={line} aria-hidden="true">
+                <span className="line-inner" data-reveal="line">
+                  {line}
+                </span>
               </span>
-            </span>
-          ))}
-        </h1>
+            ))}
+          </h1>
 
-        <p className="lede" data-reveal="fade" data-order="1">
-          A refined fragrance experience crafted for those who leave a mark without saying a word.
-        </p>
+          <p className="lede" data-reveal="fade" data-order="1">
+            A refined fragrance experience crafted for those who leave a mark without saying a word.
+          </p>
+        </div>
 
         <div className="ctas">
           <a className="btn btn-primary" href="#scene-2" data-reveal="fade" data-order="2" onClick={onDiscover}>

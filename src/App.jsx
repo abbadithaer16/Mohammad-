@@ -92,6 +92,9 @@ export default function App() {
         end: 'bottom bottom',
         onUpdate: (self) => {
           stage.outro = (self.progress * footerRef.current.offsetHeight) / window.innerHeight;
+          // the header steps aside as the end card arrives, so the rising
+          // finale copy never slides under it
+          html.style.setProperty('--chrome-opacity', String(Math.max(0, 1 - self.progress * 2.5)));
         },
       });
     });
