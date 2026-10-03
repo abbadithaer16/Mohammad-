@@ -13,7 +13,12 @@ import {
   TURN5_DELTA,
   TURN6_DELTA,
   TURN7_DELTA,
+  TURN8_DELTA,
+  TURN9_DELTA,
+  spin,
 } from '../motion/stage';
+
+const TWO_PI = Math.PI * 2;
 
 export const BOTTLE_URL = '/models/noire-bottle.glb';
 
@@ -310,10 +315,25 @@ export default function Bottle({ tier }) {
       TURN4_DELTA * stage.turn4 +
       TURN5_DELTA * stage.turn5 +
       TURN6_DELTA * stage.turn6 +
-      TURN7_DELTA * stage.turn7;
+      TURN7_DELTA * stage.turn7 +
+      TURN8_DELTA * stage.turn8 +
+      TURN9_DELTA * stage.turn9;
+
+    // Scene 8 drag-to-turn: soft inertia while the scene is interactive; when
+    // it is not, the offset eases back to the nearest whole turn, so Scene 9
+    // always lands on its composed hero angle
+    if (stage.interact > 0.5) {
+      if (!spin.dragging) {
+        spin.offset += spin.velocity * dt;
+        spin.velocity *= Math.exp(-2.6 * dt);
+      }
+    } else {
+      spin.velocity = 0;
+      spin.offset = THREE.MathUtils.damp(spin.offset, Math.round(spin.offset / TWO_PI) * TWO_PI, 2.2, dt);
+    }
     // breathing drift (±2.2°, 15 s) + pointer response (±2°), both gated by idle
     const drift = Math.sin((t / 15) * Math.PI * 2) * 0.038 + pointer.x * 0.035;
-    const target = base + drift * stage.idle;
+    const target = base + spin.offset + drift * stage.idle * (1 - stage.interact * 0.6);
     const g = turnGroup.current;
     // time-based damping: identical motion at 30, 60 or 120 Hz
     g.rotation.y = THREE.MathUtils.damp(g.rotation.y, target, 4.8, dt);

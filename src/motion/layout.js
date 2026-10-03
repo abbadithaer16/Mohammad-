@@ -73,6 +73,20 @@ export function computeLayout(w, h) {
   l.breatheShiftX = portrait ? 0 : 0.05;
   l.breatheShiftY = portrait ? 0.07 : 0.01;
 
+  // SCENE 8 · absolute studio pose: closer again, balanced, clean
+  l.studioTargetY = 0.5;
+  l.studioCamY = 0.6;
+  l.studioYaw = (8 * Math.PI) / 180;
+  l.orbitYaw = (-14 * Math.PI) / 180; // subtle orbit across the scene: +8° -> -6°
+  l.studioDist = distanceFor(portrait ? 0.5 : 0.68);
+  l.studioShiftX = portrait ? 0 : 0.1;
+  l.studioShiftY = portrait ? 0.08 : 0.025;
+
+  // SCENE 9 · bookend: exactly Scene 1's final hero framing
+  l.finaleTargetY = 0.5; // = targetY
+  l.finaleCamY = 0.5 + 0.06 * 0.65; // = Scene 1 camera height at dolly 1
+  l.finaleDist = distanceFor(l.endFraction);
+
   l.fov = FOV;
   l.dStart = distanceFor(l.startFraction);
   l.dEnd = distanceFor(l.endFraction);

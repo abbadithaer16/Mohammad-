@@ -1,15 +1,21 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Experience from './three/Experience';
 import { detectTier } from './three/quality';
 import { computeLayout } from './motion/layout';
 import { sceneReady, pointer, stage } from './motion/stage';
 import { playIntro } from './motion/introTimeline';
+import { createJourney } from './motion/journeyTimeline';
+import { registerJourney, scrollToState } from './motion/navigation';
+import Loader from './components/Loader';
 import Header from './components/Header';
 import HeroCopy from './components/HeroCopy';
 import Scene2Copy from './components/Scene2Copy';
 import NotesCopy from './components/NotesCopy';
 import MacroCopy from './components/MacroCopy';
-import { createJourney } from './motion/journeyTimeline';
+import SignatureCopy from './components/SignatureCopy';
+import FinaleCopy from './components/FinaleCopy';
+import ShopDialog from './components/ShopDialog';
 import Footer from './components/Footer';
 
 const tierName = detectTier();
@@ -17,11 +23,14 @@ const tierName = detectTier();
 export default function App() {
   const rootRef = useRef(null);
   const frameRef = useRef(null);
+  const footerRef = useRef(null);
+  const shopRef = useRef(null);
   const [layoutMode, setLayoutMode] = useState(() => computeLayout(window.innerWidth, window.innerHeight).mode);
   const [ready, setReady] = useState(false);
+  const [bag, setBag] = useState([]);
 
-  // copy column never reaches the bottle: its width is derived from the
-  // bottle's projected left edge in the final hero pose
+  // copy columns never reach the bottle: their widths derive from the bottle's
+  // projected left edge in the hero and close-up poses
   useLayoutEffect(() => {
     const apply = () => {
       const w = window.innerWidth;
@@ -49,67 +58,86 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    let tl;
+    let intro;
     let journey;
+    let outro;
+    let unlockTimer;
     let cancelled = false;
     const html = document.documentElement;
+    // the film always opens on its first shot: no restored mid-journey scroll
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     // the opening shot plays uninterrupted; scrolling unlocks once the hero
     // headline has started to land
     html.classList.add('is-locked');
     sceneReady.then(() => {
       if (cancelled) return;
-      setReady(true);
       window.scrollTo(0, 0);
-      tl = playIntro(rootRef.current);
+      setReady(true);
+      intro = playIntro(rootRef.current);
       journey = createJourney(frameRef.current);
-      tl.call(() => html.classList.remove('is-locked'), null, 2.9);
+      registerJourney(journey.scrollTrigger);
+      const unlock = () => html.classList.remove('is-locked');
+      // unlock as the hero headline lands (or when the short reduced-motion
+      // reveal ends, whichever comes first)
+      intro.call(unlock, null, Math.min(2.9, intro.duration()));
+      // safety net: on a very slow device GSAP plays the intro in slow motion
+      // (lag smoothing); never hold scrolling for more than 4.5 real seconds
+      unlockTimer = window.setTimeout(unlock, 4500);
 
-      // review hooks: ?at=1.6 freezes the reveal; ?vh=4.2 jumps to a journey
-      // position measured in viewport heights of scroll (see SCENES)
-      const params = new URLSearchParams(window.location.search);
-      const at = parseFloat(params.get('at'));
-      const vh = parseFloat(params.get('vh'));
-      if (params.has('debug')) window.__noire = { stage, intro: tl, journey };
-      if (!Number.isNaN(at)) {
-        tl.pause(at);
-        html.classList.remove('is-locked');
-      }
-      if (!Number.isNaN(vh)) {
-        tl.progress(1);
-        html.classList.remove('is-locked');
-        const st = journey.scrollTrigger;
-        st.refresh();
-        window.scrollTo(0, st.start + window.innerHeight * vh);
-      }
+      // outro: once the film has ended, the footer scrolls in and the bottle
+      // rises with the page (exactly, undamped) instead of staying behind
+      outro = ScrollTrigger.create({
+        trigger: footerRef.current,
+        start: 'top bottom',
+        end: 'bottom bottom',
+        onUpdate: (self) => {
+          stage.outro = (self.progress * footerRef.current.offsetHeight) / window.innerHeight;
+        },
+      });
     });
     return () => {
       cancelled = true;
+      window.clearTimeout(unlockTimer);
       html.classList.remove('is-locked');
+      outro?.kill();
       journey?.scrollTrigger?.kill();
       journey?.kill();
-      tl?.kill();
+      intro?.kill();
     };
   }, []);
+
+  const navigate = useCallback((name) => (e) => {
+    e?.preventDefault();
+    scrollToState(name);
+  }, []);
+  const openShop = useCallback((e) => {
+    e?.preventDefault();
+    shopRef.current?.open();
+  }, []);
+  const addToBag = useCallback((item) => setBag((b) => [...b, item]), []);
 
   return (
     <div ref={rootRef} className="app" data-layout={layoutMode} data-ready={ready}>
       <Experience tierName={tierName} />
       <div className="grain" aria-hidden="true" />
       <div className="vignette" aria-hidden="true" />
-      <div className="loader" aria-hidden="true"><span /></div>
-      <Header />
+      <Loader ready={ready} />
+      <Header onNavigate={navigate} onShop={openShop} bagCount={bag.length} />
       <main>
         {/* one pinned frame = one continuous shot; scenes are layers in it */}
         <div className="pin-frame" ref={frameRef}>
-          <HeroCopy />
+          <HeroCopy onDiscover={navigate('scent')} onShop={openShop} />
           <Scene2Copy />
           <NotesCopy chapter="TOP" index="01" notes={['BERGAMOT', 'PINK PEPPER', 'SAFFRON']} />
           <NotesCopy chapter="HEART" index="02" notes={['ROSE', 'JASMINE', 'OUD']} />
           <NotesCopy chapter="BASE" index="03" notes={['AMBER', 'MUSK', 'SANDALWOOD', 'VANILLA']} />
           <MacroCopy />
+          <SignatureCopy />
+          <FinaleCopy onDiscover={navigate('notes')} onShop={openShop} />
         </div>
       </main>
-      <Footer />
+      <Footer ref={footerRef} onNavigate={navigate} onShop={openShop} />
+      <ShopDialog ref={shopRef} onAdd={addToBag} bagCount={bag.length} />
     </div>
   );
 }

@@ -3,8 +3,6 @@
 
 export function detectTier() {
   if (typeof window === 'undefined') return 'high';
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('quality') === 'low' || params.get('quality') === 'high') return params.get('quality');
   const coarse = window.matchMedia('(pointer: coarse)').matches;
   const small = Math.min(window.innerWidth, window.innerHeight) < 700;
   const lowMemory = navigator.deviceMemory !== undefined && navigator.deviceMemory < 4;

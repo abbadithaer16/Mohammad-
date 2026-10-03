@@ -62,8 +62,10 @@ function Effects({ dof }) {
   });
 
   return (
-    // bloom stays very subtle: only HDR speculars above 1.0 (pre tone-mapping)
-    <EffectComposer multisampling={4}>
+    // bloom stays very subtle: only HDR speculars above 1.0 (pre tone-mapping).
+    // While depth of field runs, MSAA is off: DOF needs a depth texture and
+    // blitting depth out of a multisampled buffer is rejected by some drivers.
+    <EffectComposer key={dofOn ? 'dof' : 'msaa'} multisampling={dofOn ? 0 : 4}>
       {dofOn ? <DepthOfField ref={dofRef} target={focus} worldFocusRange={0.16} bokehScale={0} resolutionScale={0.5} /> : <></>}
       <Bloom mipmapBlur luminanceThreshold={1.0} luminanceSmoothing={0.2} intensity={0.24} radius={0.55} />
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
@@ -76,13 +78,12 @@ export default function Experience({ tierName }) {
   const [dpr, setDpr] = useState(Math.min(window.devicePixelRatio, tier.maxDpr));
 
   return (
-    <div className="stage-canvas" aria-hidden="true">
+    <div className="stage-canvas" role="img" aria-label="NOIRÉ Signature 01: a faceted smoked black crystal bottle with a champagne-gold collar, lit in a dark studio.">
       <Canvas
         dpr={dpr}
         camera={{ fov: 30, near: 0.05, far: 40, position: [0, 0.56, 3.3] }}
         gl={{ antialias: true, powerPreference: 'high-performance', alpha: false }}
-        onCreated={({ gl, scene, camera }) => {
-          if (new URLSearchParams(window.location.search).has('debug')) window.__r3f = { scene, camera };
+        onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.05;
         }}

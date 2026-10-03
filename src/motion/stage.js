@@ -66,6 +66,19 @@ export const START = {
   breathe: 0, // camera retreats to a centred, wider pose
   smoke: 0, // dark warm smoke sheets + soft light shaft
   word: 0, // the huge out-of-focus NOIRÉ behind the bottle
+
+  // SCENE 8 — signature 360 moment
+  studio: 0, // camera returns closer, to a clean, balanced studio pose
+  orbit: 0, // a subtle camera orbit across the scene (+8° -> -6°)
+  turn8: 0, // 0..1 -> +TURN8_DELTA, a slow scroll-driven turn
+  interact: 0, // 0..1 drag-to-turn enabled (soft-gated at the scene edges)
+
+  // SCENE 9 — final product hero
+  finale: 0, // camera returns to the Scene 1 hero framing (bookend)
+  turn9: 0, // 0..1 -> +TURN9_DELTA, settling on the front 3/4 hero angle
+
+  // outro: the bottle travels up with the page as the footer enters
+  outro: 0,
 };
 
 export const stage = { ...START };
@@ -95,9 +108,15 @@ export const TURN4_DELTA = (35 * Math.PI) / 180; // Scene 4: +40° -> +75°
 export const TURN5_DELTA = (35 * Math.PI) / 180; // Scene 5: +75° -> +110°
 export const TURN6_DELTA = (12 * Math.PI) / 180; // Scene 6: +110° -> +122°
 export const TURN7_DELTA = (10 * Math.PI) / 180; // Scene 7: +122° -> +132°
+export const TURN8_DELTA = (170 * Math.PI) / 180; // Scene 8: +132° -> +302°
+export const TURN9_DELTA = (38 * Math.PI) / 180; // Scene 9: +302° -> +340° (= -20°, front 3/4)
 
 // pointer, normalised -1..1, written by a window listener
 export const pointer = { x: 0, y: 0 };
+
+// Scene 8 drag-to-turn: written by the drag zone, integrated by the bottle
+// (soft inertia), and eased back to a whole turn when the scene is left
+export const spin = { offset: 0, velocity: 0, dragging: false };
 
 // "scene is compiled and on screen" signal, so the intro starts on a warm GPU
 let readyResolve;

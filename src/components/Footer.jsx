@@ -1,16 +1,33 @@
-import { useRef } from 'react';
+import { forwardRef, useRef } from 'react';
 
-// Model attribution required by CC-BY-4.0 (public/models/LICENSE-bottle.txt).
-export default function Footer() {
+// The film's end card. Model attribution (CC-BY-4.0, see
+// public/models/LICENSE-bottle.txt) lives behind CREDITS.
+const Footer = forwardRef(function Footer({ onNavigate, onShop }, ref) {
   const dialogRef = useRef(null);
 
   return (
-    <footer className="site-footer">
-      <span className="footer-mark">NOIRÉ</span>
-      <span className="footer-legal">© 2026 NOIRÉ. A fictional fragrance house.</span>
-      <button type="button" className="credits-link" onClick={() => dialogRef.current?.showModal()}>
-        Credits
-      </button>
+    <footer className="site-footer" ref={ref}>
+      <div className="footer-top">
+        <span className="footer-mark">NOIRÉ</span>
+        <p className="footer-statement">Scent, made to linger.</p>
+      </div>
+      <div className="footer-bottom">
+        <nav className="footer-nav" aria-label="Footer">
+          <a href="#scene-2" onClick={onNavigate('scent')}>
+            The Scent
+          </a>
+          <button type="button" onClick={onShop} aria-haspopup="dialog">
+            Shop
+          </button>
+          <a href="https://www.instagram.com/" target="_blank" rel="noreferrer">
+            Instagram
+          </a>
+          <button type="button" onClick={() => dialogRef.current?.showModal()} aria-haspopup="dialog">
+            Credits
+          </button>
+        </nav>
+        <span className="footer-legal">© 2026 NOIRÉ. A fictional fragrance house.</span>
+      </div>
 
       <dialog
         ref={dialogRef}
@@ -36,8 +53,8 @@ export default function Footer() {
             .
           </p>
           <p className="credits-note">
-            Changes: materials recoloured and re-authored (smoked black glass, champagne gold), collar separated from the body
-            mesh, NOIRÉ engraving added, textures resized.
+            Changes: materials recoloured and re-authored (smoked black crystal, champagne gold), collar separated from the body
+            mesh, normals rebuilt, NOIRÉ engraving added, textures resized.
           </p>
           <p className="credits-note">Typefaces: Bodoni Moda and Inter, SIL Open Font License.</p>
           <form method="dialog">
@@ -49,4 +66,6 @@ export default function Footer() {
       </dialog>
     </footer>
   );
-}
+});
+
+export default Footer;

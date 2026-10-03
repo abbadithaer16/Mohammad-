@@ -4,7 +4,7 @@ import { stage } from './stage';
 
 gsap.registerPlugin(ScrollTrigger);
 
-// SCENES 2 → 4 · one pinned, scrubbed shot
+// SCENES 2 → 9 · one pinned, scrubbed shot
 //
 // A single ScrollTrigger pins the frame and scrubs ONE timeline, so the
 // camera, bottle and light can never "reset" between scenes: each scene picks
@@ -16,10 +16,13 @@ export const SCENES = {
   s3: [2.2, 4.2], // top notes
   s4: [4.2, 6.2], // heart notes
   s5: [6.2, 8.4], // base notes
-  s6: [8.4, 10.6], // cap / material macro
-  s7: [10.6, 12.6], // smoke interlude
+  s6: [8.4, 10.8], // cap / material macro (a longer dwell: inspection)
+  s7: [10.8, 12.9], // smoke interlude (a breath)
+  s8: [12.9, 15.3], // signature 360 moment (time to interact)
+  s9: [15.3, 17.1], // final product hero / CTA (the payoff, then rest)
 };
-export const JOURNEY_VH = SCENES.s7[1];
+export const JOURNEY_VH = SCENES.s9[1];
+const SCENE_ORDER = Object.entries(SCENES);
 
 const IVORY = 'rgba(236, 228, 216, 1)';
 const IVORY_DIM = 'rgba(236, 228, 216, 0.42)';
@@ -37,6 +40,23 @@ export function createJourney(frame) {
   gsap.set(q('[data-n="label"]'), { autoAlpha: 0 });
   gsap.set(q('[data-n="line"]'), { color: IVORY_DIM });
   gsap.set(q('[data-m="fade"]'), { autoAlpha: 0, y: 10 });
+  gsap.set(q('[data-sig="fade"]'), { autoAlpha: 0, y: 12 });
+  gsap.set(q('[data-fin="line"]'), { yPercent: 108 });
+  gsap.set(q('[data-fin="fade"]'), { autoAlpha: 0, y: 16 });
+
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const dragZone = frame.querySelector('[data-drag-zone]');
+  let current = '';
+  // which scene is on screen: drives nav state, drag availability, etc.
+  const track = (self) => {
+    const t = self.progress * JOURNEY_VH;
+    const found = SCENE_ORDER.find(([, [a, b]]) => t >= a && t < b);
+    const name = self.progress <= 0 ? 's1' : found ? found[0] : 's9';
+    if (name === current) return;
+    current = name;
+    document.documentElement.dataset.scene = name;
+    if (dragZone) dragZone.tabIndex = name === 's8' ? 0 : -1;
+  };
 
   const tl = gsap.timeline({
     defaults: { immediateRender: false },
@@ -45,8 +65,21 @@ export function createJourney(frame) {
       start: 'top top',
       end: () => `+=${window.innerHeight * JOURNEY_VH}`,
       pin: true,
-      scrub: 1.1, // scroll smoothed for 1.1 s, then the camera rig damps again
+      // input smoothed for 0.8 s, then the camera rig damps on top: fast
+      // trackpad flicks glide through the scenes instead of snapping
+      scrub: reduce ? true : 0.8,
       invalidateOnRefresh: true,
+      onUpdate: track,
+      onRefresh: track,
+      onLeaveBack: track,
+      // reduced motion: every scroll gesture settles on a composed still
+      snap: reduce
+        ? {
+            snapTo: SCENE_ORDER.map(([, [, b]]) => (b - 0.05) / JOURNEY_VH).concat(0),
+            duration: { min: 0.2, max: 0.6 },
+            ease: 'power1.inOut',
+          }
+        : undefined,
     },
   });
 
@@ -210,8 +243,64 @@ export function createJourney(frame) {
     .fromTo(stage, { collar: 1 }, { collar: 0.4, duration: 0.9, ease: 'power2.inOut' }, s7 + 0.3)
     .fromTo(stage, { plinth: 1 }, { plinth: 0.15, duration: 1.0, ease: 'power2.inOut' }, s7 + 0.3)
     .fromTo(stage, { word: 0 }, { word: 1, duration: 1.0, ease: 'power2.inOut' }, s7 + 0.55);
-  // 1.65 → 2.0 hold: a breath
-  tl.to({}, { duration: 0.01 }, SCENES.s7[1] - 0.01);
+  // 1.65 → 2.1 hold: a breath
+
+  // =========================================================================
+  // SCENE 8 — SIGNATURE 360 MOMENT               (12.9 → 15.3 vh)
+  // out of the smoke into a clean studio: the camera comes closer to a
+  // balanced composition and orbits subtly while the bottle turns a slow
+  // +170°. In the middle of the scene the visitor can turn it themselves.
+  // =========================================================================
+  const s8 = SCENES.s8[0];
+  tl.fromTo(stage, { studio: 0 }, { studio: 1, duration: 1.3, ease: 'power3.inOut' }, s8 + 0.05)
+    .fromTo(stage, { orbit: 0 }, { orbit: 1, duration: 2.2, ease: 'sine.inOut' }, s8 + 0.1)
+    .fromTo(stage, { turn8: 0 }, { turn8: 1, duration: 2.2, ease: 'power2.inOut' }, s8 + 0.1)
+    // the air clears, the studio returns
+    .fromTo(stage, { smoke: 1 }, { smoke: 0, duration: 0.9, ease: 'power2.inOut' }, s8 + 0.05)
+    .fromTo(stage, { word: 1 }, { word: 0, duration: 0.6, ease: 'power2.in' }, s8 + 0.05)
+    .fromTo(stage, { haze: 2.3 }, { haze: 1.05, duration: 1.0, ease: 'power2.inOut' }, s8 + 0.1)
+    .fromTo(stage, { dim: 1 }, { dim: 0.3, duration: 1.0, ease: 'power2.inOut' }, s8 + 0.15)
+    .fromTo(stage, { wood: 1 }, { wood: 0.4, duration: 1.0, ease: 'power2.inOut' }, s8 + 0.15)
+    .fromTo(stage, { hue: 1 }, { hue: 0.35, duration: 1.0, ease: 'power2.inOut' }, s8 + 0.15)
+    // clean studio light: restrained rims, clear reflections, no blown highlights
+    .fromTo(stage, { rimScale: 0.6 }, { rimScale: 0.95, duration: 1.0, ease: 'power2.inOut' }, s8 + 0.25)
+    .fromTo(stage, { envScale: 0.55 }, { envScale: 0.9, duration: 1.0, ease: 'power2.inOut' }, s8 + 0.25)
+    .fromTo(stage, { sideScale: 0.7 }, { sideScale: 0.85, duration: 1.0, ease: 'power2.inOut' }, s8 + 0.25)
+    .fromTo(stage, { fillScale: 0.3 }, { fillScale: 0.5, duration: 1.0, ease: 'power2.inOut' }, s8 + 0.25)
+    .fromTo(stage, { collar: 0.4 }, { collar: 0.8, duration: 1.0, ease: 'power2.inOut' }, s8 + 0.3)
+    .fromTo(stage, { topBoost: 0 }, { topBoost: 0.3, duration: 1.0, ease: 'power2.inOut' }, s8 + 0.3)
+    .fromTo(stage, { baseGlow: 0.3 }, { baseGlow: 0.2, duration: 1.0, ease: 'power2.inOut' }, s8 + 0.3)
+    .fromTo(stage, { plinth: 0.15 }, { plinth: 0.6, duration: 1.0, ease: 'power2.inOut' }, s8 + 0.3)
+    // interaction opens once the camera has settled, closes before Scene 9
+    .fromTo(stage, { interact: 0 }, { interact: 1, duration: 0.25, ease: 'sine.inOut' }, s8 + 0.8)
+    .fromTo(stage, { interact: 1 }, { interact: 0, duration: 0.25, ease: 'sine.inOut' }, s8 + 2.15)
+    .fromTo(q('[data-sig="fade"]'), { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power3.out' }, s8 + 0.9)
+    .fromTo(q('[data-sig="fade"]'), { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -10, duration: 0.3, ease: 'power2.in' }, s8 + 2.1);
+
+  // =========================================================================
+  // SCENE 9 — FINAL PRODUCT HERO / CTA           (15.3 → 17.1 vh)
+  // the bookend: Scene 1's exact framing, the bottle settles on its front 3/4
+  // hero angle, and the light reaches its richest state
+  // =========================================================================
+  const s9 = SCENES.s9[0];
+  tl.fromTo(stage, { finale: 0 }, { finale: 1, duration: 1.1, ease: 'power3.inOut' }, s9 + 0.0)
+    .fromTo(stage, { turn9: 0 }, { turn9: 1, duration: 1.1, ease: 'power3.inOut' }, s9 + 0.0)
+    .fromTo(stage, { dim: 0.3 }, { dim: 0.12, duration: 0.9, ease: 'power2.inOut' }, s9 + 0.1)
+    .fromTo(stage, { envScale: 0.9 }, { envScale: 1, duration: 0.9, ease: 'power2.inOut' }, s9 + 0.1)
+    .fromTo(stage, { rimScale: 0.95 }, { rimScale: 1, duration: 0.9, ease: 'power2.inOut' }, s9 + 0.1)
+    .fromTo(stage, { fillScale: 0.5 }, { fillScale: 0.65, duration: 0.9, ease: 'power2.inOut' }, s9 + 0.1)
+    .fromTo(stage, { plinth: 0.6 }, { plinth: 1, duration: 0.9, ease: 'power2.inOut' }, s9 + 0.2)
+    .fromTo(stage, { collar: 0.8 }, { collar: 1, duration: 0.9, ease: 'power2.inOut' }, s9 + 0.2)
+    .fromTo(stage, { topBoost: 0.3 }, { topBoost: 0.45, duration: 0.9, ease: 'power2.inOut' }, s9 + 0.2)
+    .fromTo(stage, { baseGlow: 0.2 }, { baseGlow: 0.35, duration: 0.9, ease: 'power2.inOut' }, s9 + 0.2)
+    .fromTo(stage, { haze: 1.05 }, { haze: 1.15, duration: 0.9, ease: 'sine.inOut' }, s9 + 0.2)
+    // copy arrives after the bottle has landed on its hero angle
+    .fromTo(q('.finale .eyebrow'), { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power3.out' }, s9 + 0.8)
+    .fromTo(q('[data-fin="line"]'), { yPercent: 108 }, { yPercent: 0, duration: 0.55, ease: 'power4.out', stagger: 0.1 }, s9 + 0.85)
+    .fromTo(q('.finale .lede'), { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power3.out' }, s9 + 1.05)
+    .fromTo(q('.finale .btn'), { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power3.out', stagger: 0.06 }, s9 + 1.15);
+  // 1.6 → 1.8 rest on the final frame
+  tl.to({}, { duration: 0.01 }, SCENES.s9[1] - 0.01);
 
   return tl;
 }

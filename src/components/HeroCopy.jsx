@@ -1,6 +1,6 @@
 const LINES = ['SCENT,', 'MADE TO', 'LINGER.'];
 
-export default function HeroCopy() {
+export default function HeroCopy({ onDiscover, onShop }) {
   return (
     <section id="scene-1" className="hero" aria-labelledby="hero-title">
       <div className="hero-copy">
@@ -24,12 +24,12 @@ export default function HeroCopy() {
         </p>
 
         <div className="ctas">
-          <a className="btn btn-primary" href="#scene-1" data-reveal="fade" data-order="2">
+          <a className="btn btn-primary" href="#scene-2" data-reveal="fade" data-order="2" onClick={onDiscover}>
             <span>Discover the scent</span>
           </a>
-          <a className="btn btn-ghost" href="#scene-1" data-reveal="fade" data-order="2">
+          <button type="button" className="btn btn-ghost" data-reveal="fade" data-order="2" onClick={onShop} aria-haspopup="dialog">
             <span>Shop NOIRÉ</span>
-          </a>
+          </button>
         </div>
       </div>
 

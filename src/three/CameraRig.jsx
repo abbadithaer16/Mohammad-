@@ -36,7 +36,7 @@ export default function CameraRig() {
   useFrame((_, dtRaw) => {
     const dt = Math.min(dtRaw, 1 / 20);
     const p = stage.push;
-    const amp = layout.parallax * stage.idle * (1 - p * 0.5) * (1 - stage.macro * (1 - stage.breathe) * 0.8);
+    const amp = layout.parallax * stage.idle * (1 - p * 0.5) * (1 - stage.macro * (1 - stage.breathe) * 0.8) * (1 - stage.interact * 0.7);
 
     // Scene 1 terms
     const dist1 = lerp(layout.dStart, layout.dEnd, stage.dolly);
@@ -72,6 +72,11 @@ export default function CameraRig() {
     };
     blend(stage.macro, layout.macroDist, layout.macroTargetY, layout.macroCamY, layout.macroYaw, layout.macroShiftX, layout.macroShiftY, layout.macroFov);
     blend(stage.breathe, layout.breatheDist, layout.breatheTargetY, layout.breatheCamY, layout.breatheYaw, layout.breatheShiftX, layout.breatheShiftY, layout.fov);
+    // Scene 8: closer again into a clean studio pose, with a subtle orbit
+    blend(stage.studio, layout.studioDist, layout.studioTargetY, layout.studioCamY, layout.studioYaw, layout.studioShiftX, layout.studioShiftY, layout.fov);
+    yaw += layout.orbitYaw * stage.orbit * stage.studio * (1 - stage.finale);
+    // Scene 9: the bookend, Scene 1's hero framing exactly
+    blend(stage.finale, layout.finaleDist, layout.finaleTargetY, layout.finaleCamY, 0, layout.shiftX, layout.shiftY, layout.fov);
 
     y -= pointer.y * 0.03 * amp;
     const x = pointer.x * 0.06 * amp; // slight orbit response to the pointer, max ~1.3°
@@ -92,7 +97,9 @@ export default function CameraRig() {
     // projection shift frames the bottle off-centre without keystone
     const { width: w, height: h } = size;
     camera.fov = pose.fov;
-    camera.setViewOffset(w, h, -pose.shiftX * w, -pose.shiftY * h, w, h);
+    // outro is applied undamped: the bottle must rise exactly with the page
+    // as the footer scrolls in (stage.outro is in viewport heights)
+    camera.setViewOffset(w, h, -pose.shiftX * w, -(pose.shiftY - stage.outro) * h, w, h);
   });
 
   return null;

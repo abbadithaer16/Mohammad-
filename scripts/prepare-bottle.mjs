@@ -1,24 +1,23 @@
 // One-off model preparation for the NOIRÉ bottle.
 //
-// Input : public/models/bottle-src/scene.gltf  (original CC-BY model, untouched)
+// Input : assets-src/bottle/scene.gltf  (original CC-BY model, untouched)
 // Output: public/models/noire-bottle.glb
 //
 // What it does (geometry is never re-modelled; vertices are kept bit-exact):
 //   1. Splits the fused collar (flared disc + pin) from the body at the empty
 //      gap in the vertex profile (world y = 0.302) -> nodes Body / Collar / Stopper
-//   2. Drops the original teal/green base-colour + metal/rough maps (set in code)
+//   2. Drops every texture map (colour, metal/rough, normal): NOIRÉ materials are
+//      authored in code and normals are rebuilt at load
 //      and the duplicate UV sets (TEXCOORD_1/2 are identical to TEXCOORD_0)
-//   3. Resizes the remaining textures to 2048² WebP
 //   4. Prints the measured label-band geometry used by the brand mark shader
 //
 // Run: node scripts/prepare-bottle.mjs
 
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { prune, dedup, textureCompress, compactPrimitive } from '@gltf-transform/functions';
-import sharp from 'sharp';
+import { prune, dedup, compactPrimitive } from '@gltf-transform/functions';
 
-const SRC = 'public/models/bottle-src/scene.gltf';
+const SRC = 'assets-src/bottle/scene.gltf';
 const OUT = 'public/models/noire-bottle.glb';
 const COLLAR_SPLIT_Y = 0.302;
 
@@ -74,21 +73,21 @@ for (const mat of root.listMaterials()) {
   mat.setBaseColorTexture(null);
   mat.setBaseColorFactor([1, 1, 1, 1]);
   mat.setMetallicRoughnessTexture(null); // NOIRÉ materials set metalness/roughness in code
+  mat.setNormalTexture(null); // normals are rebuilt at load (crease-aware), no maps needed
 }
 for (const mesh of root.listMeshes()) {
   for (const prim of mesh.listPrimitives()) {
     prim.setAttribute('TEXCOORD_1', null);
     prim.setAttribute('TEXCOORD_2', null);
+    prim.setAttribute('TANGENT', null); // recomputed at load after the normal rebuild
     compactPrimitive(prim);
   }
 }
 
-// ---- 3. textures -> 2048 WebP ---------------------------------------------
-await doc.transform(
-  dedup(),
-  prune(),
-  textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [2048, 2048], quality: 92 }),
-);
+// ---- 3. prune everything now unused ----------------------------------------
+// keepAttributes: UVs stay (the collar's brushed-gold anisotropy derives its
+// tangent frame from them) even though no texture references them any more
+await doc.transform(dedup(), prune({ keepAttributes: true }));
 
 // ---- 4. measure label band (smooth ring between body studs and shoulder) ---
 const rings = new Map();
