@@ -1,8 +1,10 @@
-// Composition rules per viewport. Bottle height = 1 world unit, base at y = 0.
+// Scene 1 composition per viewport (the opening shot). Everything after Scene 1
+// lives on the single camera path in cameraPath.js, which reads these values
+// for its first and last keys. Bottle height = 1 world unit, base at y = 0.
 //
 // Framing is done with a projection shift (camera.setViewOffset), not by
-// aiming the camera off-axis, so the bottle stays perfectly frontal (no
-// keystone) while sitting right of centre on desktop / low-centre on mobile.
+// aiming the camera off-axis, so the bottle stays frontal (no keystone) while
+// sitting right of centre on desktop / low-centre on mobile.
 
 const BOTTLE_ASPECT = 0.529; // width / height of the model's bounding box
 const FOV = 30;
@@ -34,70 +36,15 @@ export function computeLayout(w, h) {
     l = { mode: 'wide', startFraction: 0.68, endFraction: 0.82, shiftX: 0.17, shiftY: 0.035 };
   }
 
-  // SCENE 2 pose: much closer, lower, a few degrees of 3/4 orbit
-  if (portrait) {
-    Object.assign(l, { pushFraction: 0.72, pushShiftX: 0, pushShiftY: 0.2 });
-  } else if (compact) {
-    Object.assign(l, { pushFraction: 0.92, pushShiftX: 0.21, pushShiftY: 0.02 });
-  } else {
-    Object.assign(l, { pushFraction: 0.98, pushShiftX: 0.2, pushShiftY: 0.012 });
-  }
-  l.pushLift = -0.09; // camera drops below the bottle's centre: low, monumental angle
-  l.pushTargetY = 0.53;
-  l.pushYaw = (7 * Math.PI) / 180; // camera orbits 7° to the right
-  // SCENE 3/4 refinements of the close pose
-  l.focusTargetY = 0.1; // Scene 3: aim 0.1u higher (upper bottle)
-  l.focusLift = 0.05;
-  l.arcYaw = (11 * Math.PI) / 180; // Scene 4: arc a further 11° (7° -> 18°)
-  l.arcLift = -0.06; // and settle a touch lower
-
-  // SCENE 5 · relative refinements of the close pose
-  l.deepLift = -0.05;
-  l.deepPush = 0.05; // 5% closer
-  l.deepYaw = (3 * Math.PI) / 180;
-
-  // SCENE 6 · absolute macro pose: stopper + collar + upper glass edge
-  l.macroTargetY = 0.8;
-  l.macroCamY = 0.9; // rises above the collar line
-  l.macroYaw = (27 * Math.PI) / 180; // arcs a further ~6°
-  l.macroFov = 24; // slight telephoto compression
-  l.macroDist = portrait ? 1.8 : 1.0;
-  l.macroShiftX = portrait ? 0 : 0.12;
-  l.macroShiftY = portrait ? 0.04 : 0;
-
-  // SCENE 7 · absolute breathing pose: wider, centred, eye level
-  l.breatheTargetY = 0.5;
-  l.breatheCamY = 0.54;
-  l.breatheYaw = (14 * Math.PI) / 180;
-  l.breatheDist = distanceFor(portrait ? 0.4 : 0.5);
-  l.breatheShiftX = portrait ? 0 : 0.05;
-  l.breatheShiftY = portrait ? 0.07 : 0.01;
-
-  // SCENE 8 · absolute studio pose: closer again, balanced, clean
-  l.studioTargetY = 0.5;
-  l.studioCamY = 0.6;
-  l.studioYaw = (8 * Math.PI) / 180;
-  l.orbitYaw = (-14 * Math.PI) / 180; // subtle orbit across the scene: +8° -> -6°
-  l.studioDist = distanceFor(portrait ? 0.5 : 0.68);
-  l.studioShiftX = portrait ? 0 : 0.1;
-  l.studioShiftY = portrait ? 0.08 : 0.025;
-
-  // SCENE 9 · bookend: exactly Scene 1's final hero framing
-  l.finaleTargetY = 0.5; // = targetY
-  l.finaleCamY = 0.5 + 0.06 * 0.65; // = Scene 1 camera height at dolly 1
-  l.finaleDist = distanceFor(l.endFraction);
-
   l.fov = FOV;
   l.dStart = distanceFor(l.startFraction);
   l.dEnd = distanceFor(l.endFraction);
-  l.dPush = distanceFor(l.pushFraction);
   l.targetY = 0.5;
   l.camLift = 0.06; // camera sits a touch above the bottle's centre
   l.parallax = portrait ? 0.5 : 1; // smaller motion amplitude on mobile
 
-  // bottle's left edge in the final pose (px), used to size the copy column
+  // bottle's left edge in the hero pose (px), used to size the hero copy column
   const bottleWpx = l.endFraction * h * BOTTLE_ASPECT;
   l.bottleLeftPx = (0.5 + l.shiftX) * w - bottleWpx / 2;
-  l.pushBottleLeftPx = (0.5 + l.pushShiftX) * w - (l.pushFraction * h * BOTTLE_ASPECT) / 2;
   return l;
 }

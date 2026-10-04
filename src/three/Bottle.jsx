@@ -2,21 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
-import {
-  stage,
-  pointer,
-  TURN_START,
-  TURN_END,
-  TURN2_DELTA,
-  TURN3_DELTA,
-  TURN4_DELTA,
-  TURN5_DELTA,
-  TURN6_DELTA,
-  TURN7_DELTA,
-  TURN8_DELTA,
-  TURN9_DELTA,
-  spin,
-} from '../motion/stage';
+import { stage, pointer, TURN_START, TURN_END, spin } from '../motion/stage';
 
 const TWO_PI = Math.PI * 2;
 
@@ -307,17 +293,9 @@ export default function Bottle({ tier }) {
     uniforms.uMarkLight.value = stage.mark;
     const dt = Math.min(dtRaw, 1 / 20);
     const t = clock.elapsedTime;
-    // Scene 1 turn, then +10° (S2), +35° (S3), +35° (S4), +35° (S5), +12° (S6), +10° (S7)
-    const base =
-      THREE.MathUtils.lerp(TURN_START, TURN_END, stage.turn) +
-      TURN2_DELTA * stage.turn2 +
-      TURN3_DELTA * stage.turn3 +
-      TURN4_DELTA * stage.turn4 +
-      TURN5_DELTA * stage.turn5 +
-      TURN6_DELTA * stage.turn6 +
-      TURN7_DELTA * stage.turn7 +
-      TURN8_DELTA * stage.turn8 +
-      TURN9_DELTA * stage.turn9;
+    // Scene 1's small turn, then the rotation planned along the camera path
+    // (cameraPath.js ROT): product and camera move on the same beats
+    const base = THREE.MathUtils.lerp(TURN_START, TURN_END, stage.turn) + (stage.rot * Math.PI) / 180;
 
     // Scene 8 drag-to-turn: soft inertia while the scene is interactive; when
     // it is not, the offset eases back to the nearest whole turn, so Scene 9

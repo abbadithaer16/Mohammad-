@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { stage } from '../motion/stage';
-import { computeLayout } from '../motion/layout';
 
 // SCENE 7 — the smoke interlude's atmosphere.
 //
@@ -102,6 +101,15 @@ const SMOKE_LAYERS = [
   { position: [-0.85, 0.55, 0.55], scale: [2.2, 2.6, 1], seed: 13.7, weight: 0.32 },
 ];
 
+// Veil: sheets standing on the camera's own axis BETWEEN the lens and the
+// bottle. As the camera is thrown back through them in Scene 7, the bottle
+// sinks into the atmosphere; as it returns in Scene 8, it passes back through.
+const VEIL_LAYERS = [
+  { position: [0.1, 0.62, 1.5], scale: [3.4, 2.4, 1], seed: 21.7, weight: 0.85 },
+  { position: [-0.3, 0.72, 2.6], scale: [4.8, 3.0, 1], seed: 27.3, weight: 0.75 },
+  { position: [0.4, 0.55, 3.7], scale: [6.4, 3.8, 1], seed: 33.1, weight: 0.6 },
+];
+
 function createWordTexture() {
   const c = document.createElement('canvas');
   // generous black margin on every side: the blur taps reach past the glyphs
@@ -129,6 +137,16 @@ function createWordTexture() {
 
 export default function Atmosphere({ tier }) {
   const layers = useMemo(() => SMOKE_LAYERS.slice(0, tier.smokeLayers), [tier.smokeLayers]);
+  const veils = useMemo(() => VEIL_LAYERS.slice(0, tier.smokeLayers >= 4 ? 3 : 2), [tier.smokeLayers]);
+  const veilMats = useMemo(
+    () =>
+      veils.map((l) => {
+        const m = new THREE.ShaderMaterial({ ...smokeShader, uniforms: THREE.UniformsUtils.clone(smokeShader.uniforms), transparent: true, depthWrite: false });
+        m.uniforms.uSeed.value = l.seed;
+        return m;
+      }),
+    [veils],
+  );
   const smokeMats = useMemo(
     () =>
       layers.map((l) => {
@@ -147,22 +165,30 @@ export default function Atmosphere({ tier }) {
     m.uniforms.uMap.value = createWordTexture();
     return m;
   }, []);
-  useEffect(() => () => [...smokeMats, beam, word].forEach((m) => m.dispose()), [smokeMats, beam, word]);
+  useEffect(() => () => [...smokeMats, ...veilMats, beam, word].forEach((m) => m.dispose()), [smokeMats, veilMats, beam, word]);
 
   // the word spans the frame: wide on desktop, narrower on a portrait phone
   const size = useThree((s) => s.size);
   const portrait = size.width / size.height < 0.85;
   const wordW = portrait ? 2.1 : 5.4;
-  // sits on the Scene 7 camera axis, 2.2u behind the bottle, facing the lens
-  const yaw = useMemo(() => computeLayout(size.width, size.height).breatheYaw, [size.width, size.height]);
-  const wordPos = useMemo(() => [-Math.sin(yaw) * 2.2, 0.62, -Math.cos(yaw) * 2.2], [yaw]);
 
+  const rig = useRef();
   const smokeRefs = useRef([]);
+  const veilRefs = useRef([]);
   const beamRef = useRef();
   const wordRef = useRef();
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock, camera }) => {
     const t = clock.elapsedTime;
+    // the whole atmosphere is staged relative to the camera's side of the
+    // bottle, so it reads the same from anywhere on the path
+    rig.current.rotation.y = Math.atan2(camera.position.x, camera.position.z);
+    veilMats.forEach((m, i) => {
+      const amount = stage.veil * veils[i].weight;
+      m.uniforms.uTime.value = t;
+      m.uniforms.uAmount.value = amount;
+      if (veilRefs.current[i]) veilRefs.current[i].visible = amount > 0.002;
+    });
     smokeMats.forEach((m, i) => {
       const amount = stage.smoke * layers[i].weight;
       m.uniforms.uTime.value = t;
@@ -178,15 +204,20 @@ export default function Atmosphere({ tier }) {
   });
 
   return (
-    <group>
-      {/* huge, out-of-focus NOIRÉ far behind the bottle */}
-      <mesh ref={wordRef} position={wordPos} rotation-y={yaw} scale={[wordW * 1.25, wordW * 1.25 * (128 / 320), 1]} material={word} renderOrder={-5} visible={false}>
+    <group ref={rig}>
+      {/* huge, out-of-focus NOIRÉ deep behind the bottle, facing the lens */}
+      <mesh ref={wordRef} position={[0, 0.62, -2.6]} scale={[wordW * 1.25, wordW * 1.25 * (128 / 320), 1]} material={word} renderOrder={-5} visible={false}>
         <planeGeometry args={[1, 1]} />
       </mesh>
       {/* soft volumetric shaft from upper right, behind the bottle */}
       <mesh ref={beamRef} position={[0.75, 1.35, -1.5]} rotation-z={0.42} scale={[1.3, 4.6, 1]} material={beam} visible={false}>
         <planeGeometry args={[1, 1]} />
       </mesh>
+      {veilMats.map((m, i) => (
+        <mesh key={`v${i}`} ref={(el) => (veilRefs.current[i] = el)} position={veils[i].position} scale={veils[i].scale} material={m} visible={false}>
+          <planeGeometry args={[1, 1]} />
+        </mesh>
+      ))}
       {smokeMats.map((m, i) => (
         <mesh key={i} ref={(el) => (smokeRefs.current[i] = el)} position={layers[i].position} scale={layers[i].scale} material={m} visible={false}>
           <planeGeometry args={[1, 1]} />

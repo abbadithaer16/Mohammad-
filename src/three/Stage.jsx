@@ -10,12 +10,13 @@ const PLINTH_H = 0.7;
 // --- backdrop: near-black studio sweep with a warm pool under the lamp -------
 const backdropShader = {
   uniforms: { uLamp: { value: 0 }, uHaze: { value: 0 }, uTime: { value: 0 }, uFlood: { value: 0 }, uHue: { value: 0 }, uWood: { value: 0 }, uDim: { value: 0 }, uBaseGlow: { value: 0 }, uBaseGlowPos: { value: new THREE.Vector2() } },
+  // the wall turns with the camera (see Stage), so its pools are authored in
+  // the wall's own plane: x across, y = world height
   vertexShader: /* glsl */ `
     varying vec3 vWorld;
     void main() {
-      vec4 w = modelMatrix * vec4(position, 1.0);
-      vWorld = w.xyz;
-      gl_Position = projectionMatrix * viewMatrix * w;
+      vWorld = vec3(position.x, position.y + 1.2, -5.0);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`,
   fragmentShader: /* glsl */ `
     uniform float uLamp; uniform float uHaze; uniform float uTime; uniform float uFlood; uniform float uHue;
@@ -162,15 +163,27 @@ export default function Stage({ tier }) {
   const glow = useRef();
   const goldLine = useRef();
 
-  const glowPoint = useMemo(() => new THREE.Vector3(), []);
-  const glowDir = useMemo(() => new THREE.Vector3(), []);
+  const wall = useRef();
+  const hazeGroup = useRef();
+  const v = useMemo(() => ({ c: new THREE.Vector3(), n: new THREE.Vector3(), r: new THREE.Vector3(), d: new THREE.Vector3(), h: new THREE.Vector3() }), []);
 
   useFrame(({ clock, camera }) => {
     const t = clock.elapsedTime;
-    // project the lower bottle (0, 0.22, 0) from the camera onto the wall (z = -5)
-    glowDir.set(0, 0.22, 0).sub(camera.position);
-    glowPoint.copy(camera.position).addScaledVector(glowDir, (-5 - camera.position.z) / glowDir.z);
-    backdrop.uniforms.uBaseGlowPos.value.set(glowPoint.x, glowPoint.y);
+    // The studio wall and its haze stay behind the bottle from wherever the
+    // camera stands on its path (the camera orbits up to ~60° around it).
+    const az = Math.atan2(camera.position.x, camera.position.z);
+    v.n.set(Math.sin(az), 0, Math.cos(az));
+    v.r.set(Math.cos(az), 0, -Math.sin(az));
+    v.c.copy(v.n).multiplyScalar(-5);
+    v.c.y = 1.2;
+    wall.current.position.copy(v.c);
+    wall.current.rotation.y = az;
+    hazeGroup.current.rotation.y = az;
+    // project the lower bottle (0, 0.22, 0) from the camera onto that wall
+    v.d.set(0, 0.22, 0).sub(camera.position);
+    const k = v.h.copy(v.c).sub(camera.position).dot(v.n) / v.d.dot(v.n);
+    v.h.copy(camera.position).addScaledVector(v.d, k);
+    backdrop.uniforms.uBaseGlowPos.value.set((v.h.x - v.c.x) * v.r.x + (v.h.z - v.c.z) * v.r.z, v.h.y);
     backdrop.uniforms.uBaseGlow.value = stage.baseGlow;
     backdrop.uniforms.uWood.value = stage.wood;
     backdrop.uniforms.uDim.value = stage.dim;
@@ -197,7 +210,7 @@ export default function Stage({ tier }) {
 
   return (
     <group>
-      <mesh position={[0, 1.2, -5]} material={backdrop} renderOrder={-10}>
+      <mesh ref={wall} position={[0, 1.2, -5]} material={backdrop} renderOrder={-10}>
         <planeGeometry args={[40, 24]} />
       </mesh>
 
@@ -248,11 +261,13 @@ export default function Stage({ tier }) {
         <cylinderGeometry args={[0.1, 0.78, 3.3, 64, 1, true]} />
       </mesh>
 
-      {hazeMats.map((m, i) => (
-        <mesh key={i} position={HAZE_LAYERS[i].position} scale={HAZE_LAYERS[i].scale} material={m}>
-          <planeGeometry args={[1, 1]} />
-        </mesh>
-      ))}
+      <group ref={hazeGroup}>
+        {hazeMats.map((m, i) => (
+          <mesh key={i} position={HAZE_LAYERS[i].position} scale={HAZE_LAYERS[i].scale} material={m}>
+            <planeGeometry args={[1, 1]} />
+          </mesh>
+        ))}
+      </group>
     </group>
   );
 }

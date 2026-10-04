@@ -1,6 +1,6 @@
 import gsap from 'gsap';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
-import { SCENES } from './journeyTimeline';
+import { HOLDS, JOURNEY_VH } from './journeyTimeline';
 
 gsap.registerPlugin(ScrollToPlugin);
 
@@ -8,10 +8,10 @@ gsap.registerPlugin(ScrollToPlugin);
 // Navigation travels the camera to these states instead of jumping.
 export const DESTINATIONS = {
   top: 0,
-  scent: SCENES.s2[0] + 1.9, // Scene 2 composed: "An impression before a word."
-  notes: SCENES.s3[0] + 1.75, // Scene 3 composed: top notes
-  signature: SCENES.s8[0] + 1.3, // Scene 8: the bottle, from every angle
-  finale: SCENES.s9[1], // Scene 9: final hero + CTA
+  scent: HOLDS.s2, // the approach, composed: "An impression before a word."
+  notes: HOLDS.s3, // top notes, composed
+  signature: HOLDS.s8, // the return: the bottle, from every angle
+  finale: JOURNEY_VH, // final hero + CTA
 };
 
 let journeyTrigger = null;

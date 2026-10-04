@@ -22,60 +22,36 @@ export const START = {
   sweepOn: 0, // its intensity envelope
   haze: 0.35, // atmosphere density
 
-  // SCENE 2 — colour flood + dolly-in. All neutral at 0 (or 1 for scales), so
+  // SCENES 2–9 — ONE CAMERA PATH. All neutral at 0 (or 1 for scales), so
   // Scene 1 renders exactly as approved until the scroll timeline moves them.
-  push: 0, // 0 = Scene 1 hero pose, 1 = Scene 2 close, low, 3/4 pose
-  turn2: 0, // 0..1 -> extra bottle rotY (TURN2_DELTA)
-  flood: 0, // 0..1 warm amber environment spreading out from the plinth
+  cam: 0, // position along the camera path (keyframe index, see cameraPath.js)
+  rot: 0, // bottle rotation added after Scene 1, in degrees
+
+  // light + atmosphere channels (0..1 unless noted)
+  flood: 0, // warm amber spreading out from the plinth across the wall
   side: 0, // warm side strip, camera-right
   collar: 0, // narrow kicker on the champagne-gold collar
-  fillScale: 1, // multiplies the front fill (reduced as the camera gets close)
-
-  // SCENE 3 — top notes
-  turn3: 0, // 0..1 -> +TURN3_DELTA
-  focus: 0, // camera favours the upper bottle (stopper / collar / shoulder)
+  fillScale: 1, // multiplies the front fill
   topBoost: 0, // brighter, warmer overhead light
-  scan: 0, // horizontal light-scan strip intensity
-  scanY: 1.15, // its height, in bottle units (base = 0, stopper top = 1)
-
-  // SCENE 4 — heart notes
-  turn4: 0, // 0..1 -> +TURN4_DELTA
-  arc: 0, // subtle camera arc (yaw) + lower eye line
+  scan: 0, // TOP / BASE: horizontal strip travelling down the bottle
+  scanY: 1.15, //   its height, in bottle units (base = 0, stopper top = 1)
+  band: 0, // HEART: vertical strip sweeping across the label band
+  bandAz: -60, //   its angle around the bottle, relative to the camera (deg)
   low: 0, // low, warm side light
-  hue: 0, // atmosphere shifts amber -> red-brown
-
-  // SCENE 5 — base notes (heavier, darker, lower)
-  turn5: 0, // 0..1 -> +TURN5_DELTA, toward a darker profile
-  deep: 0, // camera: a touch lower, 5% closer, 3° lateral drift
+  hue: 0, // atmosphere: amber -> red-brown
   baseGlow: 0, // AMBER: warm glow behind / through the lower glass
-  rimScale: 1, // MUSK: softens rims + side light (and later, the smoke)
-  wood: 0, // SANDALWOOD: atmosphere turns woody brown
-  sideScale: 1, // SANDALWOOD: directional side light strengthens
-  ivory: 0, // VANILLA: faint ivory-gold lift in the haze
-  envScale: 1, // multiplies studio reflections (upper/front brightness)
-
-  // SCENE 6 — cap / material macro
-  turn6: 0, // 0..1 -> +TURN6_DELTA, slow, so reflections crawl over facets
-  macro: 0, // camera travels to the stopper / collar macro pose
+  rimScale: 1, // MUSK softens rims + side light
+  wood: 0, // SANDALWOOD: woody brown atmosphere
+  sideScale: 1, // SANDALWOOD: directional side light
+  ivory: 0, // VANILLA: faint ivory-gold lift
+  envScale: 1, // multiplies studio reflections
   dof: 0, // depth-of-field strength (high tier only)
-  rack: 0, // focus target: 0 stopper -> 1 gold collar -> 2 glass edge
+  rack: 0, // focus: 0 stopper -> 1 gold collar -> 2 glass edge
   dim: 0, // background falls toward black
-
-  // SCENE 7 — smoke interlude
-  turn7: 0, // 0..1 -> +TURN7_DELTA, the rotation slowing to rest
-  breathe: 0, // camera retreats to a centred, wider pose
-  smoke: 0, // dark warm smoke sheets + soft light shaft
-  word: 0, // the huge out-of-focus NOIRÉ behind the bottle
-
-  // SCENE 8 — signature 360 moment
-  studio: 0, // camera returns closer, to a clean, balanced studio pose
-  orbit: 0, // a subtle camera orbit across the scene (+8° -> -6°)
-  turn8: 0, // 0..1 -> +TURN8_DELTA, a slow scroll-driven turn
-  interact: 0, // 0..1 drag-to-turn enabled (soft-gated at the scene edges)
-
-  // SCENE 9 — final product hero
-  finale: 0, // camera returns to the Scene 1 hero framing (bookend)
-  turn9: 0, // 0..1 -> +TURN9_DELTA, settling on the front 3/4 hero angle
+  smoke: 0, // smoke sheets around the bottle + light shaft
+  veil: 0, // smoke sheets BETWEEN camera and bottle (the camera passes through)
+  word: 0, // the huge out-of-focus NOIRÉ deep behind the bottle
+  interact: 0, // drag-to-turn enabled (Scene 8, after the return settles)
 
   // outro: the bottle travels up with the page as the footer enters
   outro: 0,
@@ -102,14 +78,6 @@ export const HERO = {
 
 export const TURN_START = (-9 * Math.PI) / 180;
 export const TURN_END = (-5 * Math.PI) / 180;
-export const TURN2_DELTA = (10 * Math.PI) / 180; // Scene 2: -5° -> +5°
-export const TURN3_DELTA = (35 * Math.PI) / 180; // Scene 3: +5° -> +40°
-export const TURN4_DELTA = (35 * Math.PI) / 180; // Scene 4: +40° -> +75°
-export const TURN5_DELTA = (35 * Math.PI) / 180; // Scene 5: +75° -> +110°
-export const TURN6_DELTA = (12 * Math.PI) / 180; // Scene 6: +110° -> +122°
-export const TURN7_DELTA = (10 * Math.PI) / 180; // Scene 7: +122° -> +132°
-export const TURN8_DELTA = (170 * Math.PI) / 180; // Scene 8: +132° -> +302°
-export const TURN9_DELTA = (38 * Math.PI) / 180; // Scene 9: +302° -> +340° (= -20°, front 3/4)
 
 // pointer, normalised -1..1, written by a window listener
 export const pointer = { x: 0, y: 0 };

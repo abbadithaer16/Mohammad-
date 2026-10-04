@@ -24,6 +24,7 @@ const MAX = {
   scan: 70,
   low: 14,
   base: 30,
+  band: 60,
 };
 
 // Bottle centre in world space (bottle is 1u tall, base on y = 0).
@@ -57,6 +58,26 @@ function StudioEnvironment() {
   );
 }
 
+// Choreographic lights live in the CAMERA's frame (rotated around the bottle
+// by the camera's azimuth), so a scan always crosses exactly the part of the
+// product the camera is looking at, from any angle on the path. The studio
+// itself (lamp, rims, fill, plinth, environment) stays fixed in the world, so
+// reflections genuinely travel as the camera moves around the bottle.
+const CAMERA_RELATIVE = {
+  side: [2.0, 0.95, 0.35],
+  collar: [-0.45, 1.55, 1.25],
+  low: [-1.7, 0.18, 1.0],
+  base: [0.35, 0.16, -1.3],
+  sweep: [-1.5, 0.95, 2.0],
+};
+const _v = new THREE.Vector3();
+const _aim = new THREE.Vector3();
+const placeRelative = (light, local, az, aim) => {
+  _v.set(...local).applyAxisAngle(THREE.Object3D.DEFAULT_UP, az);
+  light.position.copy(_v);
+  light.lookAt(aim);
+};
+
 export default function Lighting() {
   const scene = useThree((s) => s.scene);
   const lamp = useRef();
@@ -68,6 +89,7 @@ export default function Lighting() {
   const side = useRef();
   const collar = useRef();
   const scan = useRef();
+  const band = useRef();
   const low = useRef();
   const base = useRef();
 
@@ -77,29 +99,40 @@ export default function Lighting() {
     rimR.current.lookAt(AIM);
     fill.current.lookAt(AIM);
     plinth.current.lookAt(PLINTH_UP);
-    side.current.lookAt(AIM);
-    collar.current.lookAt(COLLAR);
-    low.current.lookAt(LOW_AIM);
-    base.current.lookAt(BASE_AIM);
   }, []);
 
-  useFrame(() => {
+  useFrame(({ camera }) => {
+    const az = Math.atan2(camera.position.x, camera.position.z);
     scene.environmentIntensity = stage.env * MAX.env * stage.envScale;
     lamp.current.intensity = stage.lamp * MAX.lamp * (1 + stage.topBoost * 0.6);
     rimL.current.intensity = stage.rim * MAX.rimL * stage.rimScale;
     rimR.current.intensity = stage.rim * MAX.rimR * stage.rimScale;
     fill.current.intensity = stage.fill * stage.fillScale * MAX.fill;
     plinth.current.intensity = stage.plinth * MAX.plinth * (1 + stage.flood * 0.4);
+
     side.current.intensity = stage.side * MAX.side * stage.sideScale * stage.rimScale;
+    placeRelative(side.current, CAMERA_RELATIVE.side, az, AIM);
     collar.current.intensity = stage.collar * MAX.collar;
-    scan.current.intensity = stage.scan * MAX.scan;
-    scan.current.position.y = stage.scanY;
-    scan.current.lookAt(0, stage.scanY - 0.08, 0);
+    placeRelative(collar.current, CAMERA_RELATIVE.collar, az, COLLAR);
     low.current.intensity = stage.low * MAX.low;
+    placeRelative(low.current, CAMERA_RELATIVE.low, az, LOW_AIM);
     base.current.intensity = stage.baseGlow * MAX.base;
+    placeRelative(base.current, CAMERA_RELATIVE.base, az, BASE_AIM);
     sweep.current.intensity = stage.sweepOn * MAX.sweep;
-    sweep.current.position.x = stage.sweep;
-    sweep.current.lookAt(SWEEP_AIM);
+    placeRelative(sweep.current, [stage.sweep, 0.95, 2.0], az, SWEEP_AIM);
+
+    // TOP / BASE scan: a thin horizontal strip a little camera-right of the
+    // lens, travelling down the bottle (stage.scanY, bottle units)
+    scan.current.intensity = stage.scan * MAX.scan;
+    _aim.set(0, stage.scanY - 0.08, 0);
+    placeRelative(scan.current, [0.25, stage.scanY, 1.7], az, _aim);
+
+    // HEART band: a thin vertical strip that sweeps around the bottle at the
+    // label's height (stage.bandAz, degrees relative to the camera)
+    band.current.intensity = stage.band * MAX.band;
+    const ba = az + (stage.bandAz * Math.PI) / 180;
+    band.current.position.set(Math.sin(ba) * 1.6, 0.5, Math.cos(ba) * 1.6);
+    band.current.lookAt(0, 0.5, 0);
   });
 
   return (
@@ -120,27 +153,21 @@ export default function Lighting() {
       {/* 4 · plinth glow: warm bounce rising from the plinth top */}
       <rectAreaLight ref={plinth} position={[0, 0.004, 0.25]} width={0.8} height={0.5} color="#c9944f" intensity={0} />
 
-      {/* SCENE 2 · warm amber side strip, camera-right and slightly behind:
-          rakes across the facets as the camera closes in */}
-      <rectAreaLight ref={side} position={[2.0, 0.95, 0.35]} width={0.45} height={2.2} color="#e3a463" intensity={0} />
-
-      {/* SCENE 2 · small softbox above-front, aimed at the collar only */}
-      <rectAreaLight ref={collar} position={[-0.45, 1.55, 1.25]} width={0.38} height={0.2} color="#ffe2bd" intensity={0} />
-
-      {/* SCENE 3 · light scan: a thin horizontal strip travelling down the
-          upper bottle; each row of facets flares as it passes */}
-      <rectAreaLight ref={scan} position={[0.25, 1.15, 1.7]} width={1.5} height={0.06} color="#ffe0b0" intensity={0} />
-
-      {/* SCENE 4 · low warm side light, camera-left: sensual, from below */}
-      <rectAreaLight ref={low} position={[-1.7, 0.18, 1.0]} width={0.5} height={1.0} color="#c8693b" intensity={0} />
-
-      {/* SCENE 5 · AMBER: low warm light from behind; it grazes the lower
-          facets and, through the transmissive glass, glows inside the base */}
-      <rectAreaLight ref={base} position={[0.35, 0.16, -1.3]} width={1.2} height={0.35} color="#d98a3d" intensity={0} />
-
-      {/* mid-reveal sweep: a narrow warm strip aimed at the upper bottle
-          (shoulder studs, collar, stopper) travelling left -> right */}
-      <rectAreaLight ref={sweep} position={[-1.5, 0.95, 2.0]} width={0.12} height={1.1} color="#ffd6a0" intensity={0} />
+      {/* camera-relative choreography lights (positions set every frame) */}
+      {/* warm amber side strip, camera-right and slightly behind */}
+      <rectAreaLight ref={side} width={0.45} height={2.2} color="#e3a463" intensity={0} />
+      {/* small softbox above-front, aimed at the collar only */}
+      <rectAreaLight ref={collar} width={0.38} height={0.2} color="#ffe2bd" intensity={0} />
+      {/* TOP / BASE scan strip */}
+      <rectAreaLight ref={scan} width={1.5} height={0.06} color="#ffe0b0" intensity={0} />
+      {/* HEART band strip */}
+      <rectAreaLight ref={band} width={0.07} height={0.5} color="#ffd2a2" intensity={0} />
+      {/* low warm side light, camera-left: sensual, from below */}
+      <rectAreaLight ref={low} width={0.5} height={1.0} color="#c8693b" intensity={0} />
+      {/* AMBER: low warm light from behind, glowing through the lower glass */}
+      <rectAreaLight ref={base} width={1.2} height={0.35} color="#d98a3d" intensity={0} />
+      {/* travelling warm sweep (Scene 1 mid-reveal, Scene 6 across the collar) */}
+      <rectAreaLight ref={sweep} width={0.12} height={1.1} color="#ffd6a0" intensity={0} />
     </>
   );
 }

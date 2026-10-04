@@ -3,6 +3,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Experience from './three/Experience';
 import { detectTier } from './three/quality';
 import { computeLayout } from './motion/layout';
+import { buildPath, chapterBottleLeft } from './motion/cameraPath';
 import { sceneReady, pointer, stage } from './motion/stage';
 import { playIntro } from './motion/introTimeline';
 import { createJourney } from './motion/journeyTimeline';
@@ -30,7 +31,7 @@ export default function App() {
   const [bag, setBag] = useState([]);
 
   // copy columns never reach the bottle: their widths derive from the bottle's
-  // projected left edge in the hero and close-up poses
+  // projected left edge in the hero pose and along the chapter path
   useLayoutEffect(() => {
     const apply = () => {
       const w = window.innerWidth;
@@ -40,7 +41,9 @@ export default function App() {
       const gutter = Math.max(24, w * 0.07);
       root.style.setProperty('--gutter', `${gutter}px`);
       root.style.setProperty('--copy-max', `${Math.max(240, Math.min(600, l.bottleLeftPx - gutter - w * 0.04))}px`);
-      root.style.setProperty('--copy-max-2', `${Math.max(240, Math.min(560, l.pushBottleLeftPx - gutter - w * 0.05))}px`);
+      // chapter copy: clear of the bottle in every chapter composition on the path
+      const chapterLeft = chapterBottleLeft(buildPath(l), w, h);
+      root.style.setProperty('--copy-max-2', `${Math.max(240, Math.min(560, chapterLeft - gutter - w * 0.04))}px`);
       setLayoutMode(l.mode);
     };
     apply();
