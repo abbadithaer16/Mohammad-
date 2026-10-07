@@ -25,12 +25,18 @@ const NOISE = /* glsl */ `
 `;
 
 const smokeShader = {
-  uniforms: { uTime: { value: 0 }, uAmount: { value: 0 }, uSeed: { value: 0 } },
+  uniforms: {
+    uTime: { value: 0 },
+    uAmount: { value: 0 },
+    uSeed: { value: 0 },
+    uThresh: { value: 0.42 }, // lower = denser smoke
+    uBody: { value: new THREE.Color(0.03, 0.019, 0.012) }, // colour of the smoke's body
+  },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
     void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: /* glsl */ `
-    uniform float uTime; uniform float uAmount; uniform float uSeed;
+    uniform float uTime; uniform float uAmount; uniform float uSeed; uniform float uThresh; uniform vec3 uBody;
     varying vec2 vUv;
     ${NOISE}
     void main() {
@@ -39,12 +45,12 @@ const smokeShader = {
       // domain warp: two slow fields bend the third -> long, elegant curls
       vec2 w = vec2(fbm(p + vec2(0.0, -t)), fbm(p + vec2(5.2, -t * 1.3)));
       float n = fbm(p + 1.6 * w + vec2(sin(t * 2.0) * 0.15, -t * 1.6));
-      float body = smoothstep(0.42, 0.82, n);
+      float body = smoothstep(uThresh, uThresh + 0.4, n);
       float edge = smoothstep(0.0, 0.28, vUv.x) * smoothstep(1.0, 0.72, vUv.x)
                  * smoothstep(0.0, 0.3, vUv.y) * smoothstep(1.0, 0.62, vUv.y);
       // back-lit from upper left: the thin parts of each curl catch warm light
-      float lit = smoothstep(0.42, 0.62, n) * (1.0 - smoothstep(0.62, 0.86, n)) * (0.55 + 0.45 * (1.0 - vUv.x) * vUv.y);
-      vec3 dark = vec3(0.030, 0.019, 0.012);
+      float lit = smoothstep(uThresh, uThresh + 0.2, n) * (1.0 - smoothstep(uThresh + 0.2, uThresh + 0.44, n)) * (0.55 + 0.45 * (1.0 - vUv.x) * vUv.y);
+      vec3 dark = uBody;
       vec3 warm = vec3(0.30, 0.18, 0.095);
       vec3 col = mix(dark, warm, lit);
       gl_FragColor = vec4(col, body * edge * uAmount);
@@ -94,20 +100,97 @@ const wordShader = {
     }`,
 };
 
+// Gold dust: a few hundred soft motes hanging in the studio light. They are
+// fixed in the WORLD (not the camera), so as the camera orbits, pushes and
+// pulls back they slide past at different depths: real parallax between
+// foreground air, bottle and background. Slow drift, no swirl.
+const dustShader = {
+  uniforms: {
+    uTime: { value: 0 },
+    uAmount: { value: 0 },
+    uPixel: { value: 1 },
+  },
+  vertexShader: /* glsl */ `
+    uniform float uTime; uniform float uPixel;
+    attribute float aSeed;
+    varying float vTwinkle;
+    void main() {
+      vec3 p = position;
+      float t = uTime * 0.035 + aSeed * 6.2831;
+      p.y += mod(uTime * 0.012 + aSeed * 3.0, 3.0) - 1.0;     // slow rise, wrapping
+      p.x += sin(t) * 0.06; p.z += cos(t * 0.8) * 0.06;       // gentle sway
+      vec4 mv = modelViewMatrix * vec4(p, 1.0);
+      gl_Position = projectionMatrix * mv;
+      gl_PointSize = (0.9 + aSeed * 1.6) * uPixel * (2.2 / -mv.z);
+      vTwinkle = 0.55 + 0.45 * sin(uTime * 0.6 + aSeed * 40.0);
+    }`,
+  fragmentShader: /* glsl */ `
+    uniform float uAmount;
+    varying float vTwinkle;
+    void main() {
+      vec2 c = gl_PointCoord - 0.5;
+      float a = smoothstep(0.5, 0.0, length(c));
+      gl_FragColor = vec4(vec3(1.0, 0.82, 0.55) * a * vTwinkle * uAmount * 0.55, 1.0);
+    }`,
+};
+
+function createDust(count) {
+  const g = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  const seed = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    // a loose shell around the bottle: never inside it, denser near it
+    const a = Math.random() * Math.PI * 2;
+    const r = 0.45 + Math.pow(Math.random(), 0.7) * 2.6;
+    pos[i * 3] = Math.sin(a) * r;
+    pos[i * 3 + 1] = -0.1 + Math.random() * 2.0;
+    pos[i * 3 + 2] = Math.cos(a) * r;
+    seed[i] = Math.random();
+  }
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('aSeed', new THREE.BufferAttribute(seed, 1));
+  return g;
+}
+
 const SMOKE_LAYERS = [
-  { position: [0.15, 0.75, -1.1], scale: [4.8, 3.2, 1], seed: 1.3, weight: 0.55 },
+  {
+    position: [0.15, 0.75, -1.1],
+    scale: [4.8, 3.2, 1],
+    seed: 1.3,
+    weight: 0.55,
+  },
   { position: [0, -0.1, 0.9], scale: [4.6, 1.5, 1], seed: 9.4, weight: 0.95 }, // veils the plinth: the bottle floats
   { position: [-0.2, 1.1, -2.4], scale: [9, 5.5, 1], seed: 5.1, weight: 0.5 },
-  { position: [-0.85, 0.55, 0.55], scale: [2.2, 2.6, 1], seed: 13.7, weight: 0.32 },
+  {
+    position: [-0.85, 0.55, 0.55],
+    scale: [2.2, 2.6, 1],
+    seed: 13.7,
+    weight: 0.32,
+  },
 ];
 
 // Veil: sheets standing on the camera's own axis BETWEEN the lens and the
 // bottle. As the camera is thrown back through them in Scene 7, the bottle
 // sinks into the atmosphere; as it returns in Scene 8, it passes back through.
 const VEIL_LAYERS = [
-  { position: [0.1, 0.62, 1.5], scale: [3.4, 2.4, 1], seed: 21.7, weight: 0.85 },
-  { position: [-0.3, 0.72, 2.6], scale: [4.8, 3.0, 1], seed: 27.3, weight: 0.75 },
-  { position: [0.4, 0.55, 3.7], scale: [6.4, 3.8, 1], seed: 33.1, weight: 0.6 },
+  {
+    position: [0.1, 0.62, 1.5],
+    scale: [3.4, 2.4, 1],
+    seed: 21.7,
+    weight: 1.15,
+  },
+  {
+    position: [-0.3, 0.72, 2.6],
+    scale: [4.8, 3.0, 1],
+    seed: 27.3,
+    weight: 1.0,
+  },
+  {
+    position: [0.4, 0.55, 3.7],
+    scale: [6.4, 3.8, 1],
+    seed: 33.1,
+    weight: 0.85,
+  },
 ];
 
 function createWordTexture() {
@@ -131,7 +214,10 @@ function createWordTexture() {
     tex.needsUpdate = true;
   };
   draw();
-  document.fonts?.load('400 64px "Bodoni Moda Variable"').then(draw).catch(() => {});
+  document.fonts
+    ?.load('400 64px "Bodoni Moda Variable"')
+    .then(draw)
+    .catch(() => {});
   return tex;
 }
 
@@ -141,8 +227,17 @@ export default function Atmosphere({ tier }) {
   const veilMats = useMemo(
     () =>
       veils.map((l) => {
-        const m = new THREE.ShaderMaterial({ ...smokeShader, uniforms: THREE.UniformsUtils.clone(smokeShader.uniforms), transparent: true, depthWrite: false });
+        const m = new THREE.ShaderMaterial({
+          ...smokeShader,
+          uniforms: THREE.UniformsUtils.clone(smokeShader.uniforms),
+          transparent: true,
+          depthWrite: false,
+        });
         m.uniforms.uSeed.value = l.seed;
+        // smoke between lens and bottle reads as LIT haze: lighter than the
+        // black glass and denser, so the bottle genuinely sinks into it
+        m.uniforms.uThresh.value = 0.3;
+        m.uniforms.uBody.value.setRGB(0.1, 0.066, 0.045);
         return m;
       }),
     [veils],
@@ -150,22 +245,54 @@ export default function Atmosphere({ tier }) {
   const smokeMats = useMemo(
     () =>
       layers.map((l) => {
-        const m = new THREE.ShaderMaterial({ ...smokeShader, uniforms: THREE.UniformsUtils.clone(smokeShader.uniforms), transparent: true, depthWrite: false });
+        const m = new THREE.ShaderMaterial({
+          ...smokeShader,
+          uniforms: THREE.UniformsUtils.clone(smokeShader.uniforms),
+          transparent: true,
+          depthWrite: false,
+        });
         m.uniforms.uSeed.value = l.seed;
         return m;
       }),
     [layers],
   );
   const beam = useMemo(
-    () => new THREE.ShaderMaterial({ ...beamShader, uniforms: THREE.UniformsUtils.clone(beamShader.uniforms), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }),
+    () =>
+      new THREE.ShaderMaterial({
+        ...beamShader,
+        uniforms: THREE.UniformsUtils.clone(beamShader.uniforms),
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }),
     [],
   );
   const word = useMemo(() => {
-    const m = new THREE.ShaderMaterial({ ...wordShader, uniforms: THREE.UniformsUtils.clone(wordShader.uniforms), transparent: true, depthWrite: false });
+    const m = new THREE.ShaderMaterial({
+      ...wordShader,
+      uniforms: THREE.UniformsUtils.clone(wordShader.uniforms),
+      transparent: true,
+      depthWrite: false,
+    });
     m.uniforms.uMap.value = createWordTexture();
     return m;
   }, []);
-  useEffect(() => () => [...smokeMats, ...veilMats, beam, word].forEach((m) => m.dispose()), [smokeMats, veilMats, beam, word]);
+  const dustGeo = useMemo(() => createDust(tier.smokeLayers >= 4 ? 260 : 90), [tier.smokeLayers]);
+  const dust = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        ...dustShader,
+        uniforms: THREE.UniformsUtils.clone(dustShader.uniforms),
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }),
+    [],
+  );
+  useEffect(
+    () => () => [...smokeMats, ...veilMats, beam, word, dust, dustGeo].forEach((m) => m.dispose()),
+    [smokeMats, veilMats, beam, word, dust, dustGeo],
+  );
 
   // the word spans the frame: wide on desktop, narrower on a portrait phone
   const size = useThree((s) => s.size);
@@ -173,13 +300,18 @@ export default function Atmosphere({ tier }) {
   const wordW = portrait ? 2.1 : 5.4;
 
   const rig = useRef();
+  const dustRef = useRef();
   const smokeRefs = useRef([]);
   const veilRefs = useRef([]);
   const beamRef = useRef();
   const wordRef = useRef();
 
-  useFrame(({ clock, camera }) => {
+  useFrame(({ clock, camera, gl, size: s }) => {
     const t = clock.elapsedTime;
+    dust.uniforms.uTime.value = t;
+    dust.uniforms.uAmount.value = stage.dust;
+    dust.uniforms.uPixel.value = gl.getPixelRatio() * (s.height / 900) * 3.2;
+    dustRef.current.visible = stage.dust > 0.002;
     // the whole atmosphere is staged relative to the camera's side of the
     // bottle, so it reads the same from anywhere on the path
     rig.current.rotation.y = Math.atan2(camera.position.x, camera.position.z);
@@ -204,25 +336,42 @@ export default function Atmosphere({ tier }) {
   });
 
   return (
-    <group ref={rig}>
-      {/* huge, out-of-focus NOIRÉ deep behind the bottle, facing the lens */}
-      <mesh ref={wordRef} position={[0, 0.62, -2.6]} scale={[wordW * 1.25, wordW * 1.25 * (128 / 320), 1]} material={word} renderOrder={-5} visible={false}>
-        <planeGeometry args={[1, 1]} />
-      </mesh>
-      {/* soft volumetric shaft from upper right, behind the bottle */}
-      <mesh ref={beamRef} position={[0.75, 1.35, -1.5]} rotation-z={0.42} scale={[1.3, 4.6, 1]} material={beam} visible={false}>
-        <planeGeometry args={[1, 1]} />
-      </mesh>
-      {veilMats.map((m, i) => (
-        <mesh key={`v${i}`} ref={(el) => (veilRefs.current[i] = el)} position={veils[i].position} scale={veils[i].scale} material={m} visible={false}>
+    <>
+      <points ref={dustRef} geometry={dustGeo} material={dust} visible={false} frustumCulled={false} />
+      <group ref={rig}>
+        {/* huge, out-of-focus NOIRÉ deep behind the bottle, facing the lens */}
+        <mesh
+          ref={wordRef}
+          position={[0, 0.62, -2.6]}
+          scale={[wordW * 1.25, wordW * 1.25 * (128 / 320), 1]}
+          material={word}
+          renderOrder={-5}
+          visible={false}
+        >
           <planeGeometry args={[1, 1]} />
         </mesh>
-      ))}
-      {smokeMats.map((m, i) => (
-        <mesh key={i} ref={(el) => (smokeRefs.current[i] = el)} position={layers[i].position} scale={layers[i].scale} material={m} visible={false}>
+        {/* soft volumetric shaft from upper right, behind the bottle */}
+        <mesh ref={beamRef} position={[0.75, 1.35, -1.5]} rotation-z={0.42} scale={[1.3, 4.6, 1]} material={beam} visible={false}>
           <planeGeometry args={[1, 1]} />
         </mesh>
-      ))}
-    </group>
+        {veilMats.map((m, i) => (
+          <mesh
+            key={`v${i}`}
+            ref={(el) => (veilRefs.current[i] = el)}
+            position={veils[i].position}
+            scale={veils[i].scale}
+            material={m}
+            visible={false}
+          >
+            <planeGeometry args={[1, 1]} />
+          </mesh>
+        ))}
+        {smokeMats.map((m, i) => (
+          <mesh key={i} ref={(el) => (smokeRefs.current[i] = el)} position={layers[i].position} scale={layers[i].scale} material={m} visible={false}>
+            <planeGeometry args={[1, 1]} />
+          </mesh>
+        ))}
+      </group>
+    </>
   );
 }

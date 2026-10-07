@@ -11,7 +11,7 @@ export const START = {
 
   // light rig, 0..1 multipliers of each light's full intensity (Lighting.jsx)
   lamp: 0, // overhead warm key
-  rim: 0.07, // gold rim lights; non-zero so a faint gold edge is just readable
+  rim: 0.03, // gold rim lights: only a whisper of edge in the opening darkness
   fill: 0, // front softbox, reveals the black glass
   env: 0.025, // studio reflections (scene.environmentIntensity)
   plinth: 0, // warm glow pooled on the plinth
@@ -36,6 +36,7 @@ export const START = {
   scan: 0, // TOP / BASE: horizontal strip travelling down the bottle
   scanY: 1.15, //   its height, in bottle units (base = 0, stopper top = 1)
   band: 0, // HEART: vertical strip sweeping across the label band
+  bandTone: 0, // 0 warm amber (HEART) .. 1 neutral champagne (craft macro)
   bandAz: -60, //   its angle around the bottle, relative to the camera (deg)
   low: 0, // low, warm side light
   hue: 0, // atmosphere: amber -> red-brown
@@ -51,6 +52,7 @@ export const START = {
   smoke: 0, // smoke sheets around the bottle + light shaft
   veil: 0, // smoke sheets BETWEEN camera and bottle (the camera passes through)
   word: 0, // the huge out-of-focus NOIRÉ deep behind the bottle
+  dust: 0, // sparse gold dust hanging in the light (world-fixed: parallax)
   interact: 0, // drag-to-turn enabled (Scene 8, after the return settles)
 
   // outro: the bottle travels up with the page as the footer enters
@@ -90,3 +92,7 @@ export const spin = { offset: 0, velocity: 0, dragging: false };
 let readyResolve;
 export const sceneReady = new Promise((r) => (readyResolve = r));
 export const markSceneReady = () => readyResolve();
+
+// Fraction of the camera's azimuth the studio wall and haze follow. Below 1 the
+// background slides against the bottle during an orbit (parallax).
+export const BG_FOLLOW = 0.55;

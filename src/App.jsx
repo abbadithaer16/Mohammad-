@@ -15,6 +15,7 @@ import Scene2Copy from './components/Scene2Copy';
 import NotesCopy from './components/NotesCopy';
 import MacroCopy from './components/MacroCopy';
 import SignatureCopy from './components/SignatureCopy';
+import MonumentCopy from './components/MonumentCopy';
 import FinaleCopy from './components/FinaleCopy';
 import ShopDialog from './components/ShopDialog';
 import Footer from './components/Footer';
@@ -82,10 +83,10 @@ export default function App() {
       const unlock = () => html.classList.remove('is-locked');
       // unlock as the hero headline lands (or when the short reduced-motion
       // reveal ends, whichever comes first)
-      intro.call(unlock, null, Math.min(2.9, intro.duration()));
+      intro.call(unlock, null, Math.min(3.4, intro.duration()));
       // safety net: on a very slow device GSAP plays the intro in slow motion
-      // (lag smoothing); never hold scrolling for more than 4.5 real seconds
-      unlockTimer = window.setTimeout(unlock, 4500);
+      // (lag smoothing); never hold scrolling for more than 5.2 real seconds
+      unlockTimer = window.setTimeout(unlock, 5200);
 
       // outro: once the film has ended, the footer scrolls in and the bottle
       // rises with the page (exactly, undamped) instead of staying behind
@@ -134,11 +135,12 @@ export default function App() {
         <div className="pin-frame" ref={frameRef}>
           <HeroCopy onDiscover={navigate('scent')} onShop={openShop} />
           <Scene2Copy />
+          <MacroCopy />
           <NotesCopy chapter="TOP" index="01" notes={['BERGAMOT', 'PINK PEPPER', 'SAFFRON']} />
           <NotesCopy chapter="HEART" index="02" notes={['ROSE', 'JASMINE', 'OUD']} />
           <NotesCopy chapter="BASE" index="03" notes={['AMBER', 'MUSK', 'SANDALWOOD', 'VANILLA']} />
-          <MacroCopy />
           <SignatureCopy />
+          <MonumentCopy />
           <FinaleCopy onDiscover={navigate('notes')} onShop={openShop} />
         </div>
       </main>

@@ -29,6 +29,7 @@ export function computeLayout(w, h) {
       endFraction: short ? 0.47 : 0.53,
       shiftX: 0, // bottle horizontally centred
       shiftY: short ? 0.14 : 0.115, // bottle centre at 64% / 61.5% of the height
+      short,
     };
   } else if (compact) {
     l = { mode: 'compact', startFraction: 0.6, endFraction: 0.71, shiftX: 0.19, shiftY: 0.03 };

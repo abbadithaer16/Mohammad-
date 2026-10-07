@@ -32,12 +32,14 @@ function ReadySignal() {
 // Rack-focus targets on the bottle (bottle units), each pushed out toward the
 // camera onto the surface: stopper -> gold collar -> upper glass edge.
 const FOCUS_POINTS = [
-  { y: 0.9, r: 0.12 },
-  { y: 0.835, r: 0.17 },
-  { y: 0.64, r: 0.25 },
+  { y: 0.9, r: 0.12 }, // 0 · stopper            (03 gold detail)
+  { y: 0.835, r: 0.17 }, // 1 · gold collar
+  { y: 0.64, r: 0.25 }, // 2 · upper glass edge
+  { y: 0.49, r: 0.254 }, // 3 · NOIRÉ engraving band (07 craft)
+  { y: 0.3, r: 0.265 }, // 4 · cut facets below it
 ];
 
-// Post stack (high tier). Depth of field is mounted only while Scene 6 needs it,
+// Post stack (high tier). Depth of field is mounted only while a macro needs it,
 // so it costs nothing anywhere else in the journey.
 function Effects({ dof }) {
   const [dofOn, setDofOn] = useState(false);
@@ -49,8 +51,8 @@ function Effects({ dof }) {
     const on = dof && stage.dof > 0.002;
     if (on !== dofOn) setDofOn(on);
     if (!dofRef.current) return;
-    const k = Math.min(Math.max(stage.rack, 0), 2);
-    const i = Math.min(Math.floor(k), 1);
+    const k = Math.min(Math.max(stage.rack, 0), FOCUS_POINTS.length - 1);
+    const i = Math.min(Math.floor(k), FOCUS_POINTS.length - 2);
     const f = k - i;
     const a = FOCUS_POINTS[i];
     const b = FOCUS_POINTS[i + 1];

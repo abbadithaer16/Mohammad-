@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
@@ -26,6 +26,10 @@ const MAX = {
   base: 30,
   band: 60,
 };
+
+// HEART band tones: warm amber, and a neutral champagne for the craft macro
+const BAND_WARM = new THREE.Color('#ffd2a2');
+const BAND_NEUTRAL = new THREE.Color('#fff4e6');
 
 // Bottle centre in world space (bottle is 1u tall, base on y = 0).
 const AIM = new THREE.Vector3(0, 0.5, 0);
@@ -70,6 +74,14 @@ const CAMERA_RELATIVE = {
   base: [0.35, 0.16, -1.3],
   sweep: [-1.5, 0.95, 2.0],
 };
+// Studio life: the environment turns a little against the camera's orbit, so
+// its strips glide across the black glass and gold faster than the camera
+// moves, and drifts very slowly on its own; the two rim strips breathe a few
+// centimetres. Off for reduced motion.
+const ENV_COUNTER = 0.12; // radians of env turn per radian of camera orbit
+const RIM_L = new THREE.Vector3(-2.1, 1.1, -2.4);
+const RIM_R = new THREE.Vector3(2.3, 1.0, -2.4);
+
 const _v = new THREE.Vector3();
 const _aim = new THREE.Vector3();
 const placeRelative = (light, local, az, aim) => {
@@ -101,8 +113,16 @@ export default function Lighting() {
     plinth.current.lookAt(PLINTH_UP);
   }, []);
 
-  useFrame(({ camera }) => {
+  const ambient = useMemo(() => (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1), []);
+
+  useFrame(({ camera, clock }) => {
     const az = Math.atan2(camera.position.x, camera.position.z);
+    const t = clock.elapsedTime;
+    scene.environmentRotation.y = -az * ENV_COUNTER + Math.sin(t * 0.045) * 0.05 * ambient;
+    rimL.current.position.set(RIM_L.x + Math.sin(t * 0.07) * 0.14 * ambient, RIM_L.y, RIM_L.z);
+    rimR.current.position.set(RIM_R.x + Math.sin(t * 0.058 + 1.7) * 0.12 * ambient, RIM_R.y, RIM_R.z);
+    rimL.current.lookAt(AIM);
+    rimR.current.lookAt(AIM);
     scene.environmentIntensity = stage.env * MAX.env * stage.envScale;
     lamp.current.intensity = stage.lamp * MAX.lamp * (1 + stage.topBoost * 0.6);
     rimL.current.intensity = stage.rim * MAX.rimL * stage.rimScale;
@@ -130,6 +150,7 @@ export default function Lighting() {
     // HEART band: a thin vertical strip that sweeps around the bottle at the
     // label's height (stage.bandAz, degrees relative to the camera)
     band.current.intensity = stage.band * MAX.band;
+    band.current.color.lerpColors(BAND_WARM, BAND_NEUTRAL, stage.bandTone);
     const ba = az + (stage.bandAz * Math.PI) / 180;
     band.current.position.set(Math.sin(ba) * 1.6, 0.5, Math.cos(ba) * 1.6);
     band.current.lookAt(0, 0.5, 0);

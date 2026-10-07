@@ -15,73 +15,106 @@
 
 const DEG = Math.PI / 180;
 
-// Scene names map to path positions (key indices) for the timeline + nav.
+// Shot names map to path positions (key indices) for the timeline + nav.
+// Consecutive keys always change azimuth AND distance/height together, so
+// every transition is an arc, crane or dolly through the set, never the
+// bottle simply growing on the same axis.
 export const KEY = {
-  hero: 0, // end of Scene 1
-  approach: 1, // Scene 2: low 3/4, the bottle overfills the frame
-  top: 2, // Scene 3: up and across the front shoulder, onto the stopper
-  heart: 3, // Scene 4: arc round to the side, the label band
-  base: 4, // Scene 5: down to the base and lower glass, almost at plinth level
-  macro: 5, // Scene 6: the gold collar fills the frame
-  pullback: 6, // Scene 7: thrown back into the smoke
-  breathe: 7, //          still drifting through it
-  return: 8, // Scene 8: the bottle emerges, the camera comes back on an arc
-  arc: 9, // Scene 9: the last arc passes the hero line...
-  final: 10, //          ...and settles with a slight push
+  hero: 0, //       01 · end of the reveal
+  orbitA: 1, //     02 · the arc begins: high camera-right
+  orbitB: 2, //          ...swinging round low camera-left, one side into dark
+  detailA: 3, //    03 · macro: the stopper's cut geometry, from above
+  detailB: 4, //         ...craning down onto the gold collar while arcing round it
+  pullback: 5, //   04 · thrown back into the atmosphere (still arcing right)
+  drift: 6, //           ...still travelling through it
+  top: 7, //        05 · olfactory world: up onto the stopper (TOP)
+  heart: 8, //           ...round to the label band (HEART)
+  base: 9, //            ...down to the lower glass (BASE)
+  sigA: 10, //      06 · the signature shot: full bottle, centred
+  sigB: 11, //           ...a slow cinematic push
+  craftA: 12, //    07 · macro: the NOIRÉ engraving square to the lens
+  craftB: 13, //         ...tracking down and round across the cut facets
+  monument: 14, //  08 · low, monumental (arcing on past centre)
+  final: 15, //     09 · the CTA frame (Scene 1's framing, a touch closer)
 };
 
-// Bottle rotation (degrees, added after Scene 1's -5°) planned on the same
-// beats, so product and camera move together: the viewer travels around the
-// object AND the object turns to meet the light.
+// Bottle rotation (degrees, added after Scene 1's -5°) on the same beats as the
+// camera. The CAMERA travels; the bottle only turns slowly and a little, so the
+// world-fixed studio light genuinely slides across the glass as the camera
+// orbits. The engraving faces the lens when rot = camera azimuth + 5°.
 export const ROT = {
-  approach: 15, // -5° -> +10°
-  top: 43,
-  heart: 77, // label turns to meet the side camera (camera 62°, label ~72°)
-  base: 110, // darker profile
-  macro: 123,
-  pullback: 133,
-  breathe: 145,
-  return: 255,
-  signature: 315, // the slow turn while the visitor may drag
-  final: 345, // = -20°: the front 3/4 hero angle
+  orbitA: 4,
+  orbitB: 8,
+  detailA: 10,
+  detailB: 12,
+  pullback: 15,
+  drift: 18,
+  top: 22,
+  heart: 48, // the mark sits on the band, a little turned away (camera at 62°)
+  base: 52,
+  sigA: 30,
+  sigB: 9, // = sigB azimuth 4° + 5°: the engraving arrives facing the lens
+  craftA: -15, // = craftA azimuth -20° + 5°: square to the lens for the macro
+  craftB: -12,
+  monument: 19,
+  final: 35, // = +30°: front 3/4 (unchanged from Scene 1's bookend)
 };
+
+// Lens: one 30° lens for the whole film; macros close down to 27°. Distances
+// were re-derived so each frame keeps its framing: tan(fov/2) * r is constant.
+const MACRO_FOV = 27;
+const M = (r) => r * (Math.tan((24 / 2) * DEG) / Math.tan((MACRO_FOV / 2) * DEG)); // keys authored at 24°
 
 export function buildPath(layout) {
   const portrait = layout.mode === 'portrait';
   const compact = layout.mode === 'compact';
-  // phones frame from a little further back (copy sits above the bottle);
-  // the macro needs proportionally more room on a narrow screen
+  // phones frame from a little further back (copy sits above the bottle) and
+  // travel less; the macros need proportionally more room on a narrow screen
   const R = (r, phone = 1.22) => r * (portrait ? phone : compact ? 1.1 : 1);
+  const A = (az) => (portrait ? az * 0.7 : az); // smaller arcs on phones
   const SX = (x) => (portrait ? 0 : compact ? x + 0.02 : x);
   const SY = (x, phone) => (portrait ? phone : x);
+  const d = layout.dEnd;
 
-  const keys = [
+  return [
     null, // K0 is live: Scene 1's own pose (see CameraRig)
-    // Scene 2 · strong dolly in, camera drops to a low 3/4 angle; the bottle
-    // grows to ~115% of the frame and crops top and bottom
-    { az: 24, r: R(1.6), y: 0.16, ty: 0.56, fov: 30, sx: SX(0.14), sy: SY(0, 0.17) },
-    // Scene 3 · TOP: crane up and back across the front shoulder, looking down
-    // onto stopper, collar and upper glass
-    { az: 6, r: R(1.12), y: 1.08, ty: 0.8, fov: 28, sx: SX(0.13), sy: SY(0.05, 0.2) },
-    // Scene 4 · HEART: arc round to the side at mid height, the label band
-    { az: 62, r: R(1.45), y: 0.5, ty: 0.5, fov: 30, sx: SX(0.16), sy: SY(0, 0.16) },
-    // Scene 5 · BASE: drop almost to plinth level, aim at the lower glass
-    { az: 28, r: R(1.28), y: 0.05, ty: 0.3, fov: 30, sx: SX(0.14), sy: SY(0.02, 0.12) },
-    // Scene 6 · MACRO: crane up and push in until the gold collar and stopper
-    // fill most of the frame
-    { az: 10, r: R(0.62, 1.5), y: 0.9, ty: 0.835, fov: 24, sx: SX(0.08), sy: SY(0, 0.05) },
-    // Scene 7 · thrown back through the smoke, the bottle small and distant
-    { az: -25, r: R(5.4, 1.12), y: 0.95, ty: 0.55, fov: 30, sx: SX(0), sy: SY(0, 0.05) },
-    // ...and still travelling, drifting sideways through the atmosphere
-    { az: -40, r: R(4.9, 1.12), y: 0.72, ty: 0.55, fov: 30, sx: SX(0), sy: SY(0.01, 0.05) },
-    // Scene 8 · the return: the camera comes back toward the product on an arc
-    { az: -8, r: layout.dEnd * 1.03, y: 0.64, ty: 0.5, fov: 30, sx: SX(0.08), sy: SY(0.02, 0.09) },
-    // Scene 9 · one last arc past the hero line...
-    { az: 6, r: layout.dEnd * 1.01, y: 0.58, ty: 0.5, fov: 30, sx: layout.shiftX * 0.9, sy: layout.shiftY * 0.9 },
-    // ...settling with a slight push, on Scene 1's framing (the bookend)
-    { az: 0, r: layout.dEnd * 0.93, y: 0.539, ty: 0.5, fov: 30, sx: layout.shiftX, sy: layout.shiftY },
+    // 02 · SCULPTURAL ORBIT: an arc from high camera-right...
+    { az: A(38), r: R(2.0), y: 0.66, ty: 0.52, fov: 30, sx: SX(0.14), sy: SY(0.02, 0.16) },
+    // ...round to low camera-left; the world-fixed studio light means one side
+    // of the bottle falls into darkness as the camera passes (short phones sit
+    // further back and lower, under the two-line copy)
+    { az: A(-42), r: R(1.7, layout.short ? 1.42 : 1.22), y: 0.36, ty: 0.55, fov: 30, sx: SX(0.14), sy: SY(0, layout.short ? 0.24 : 0.16) },
+    // 03 · MATERIAL / GOLD: the camera keeps arcing right as it rises and
+    // pushes in, until the stopper's cut geometry fills the frame...
+    { az: A(-16), r: R(M(0.6), 1.75), y: 1.02, ty: 0.9, fov: MACRO_FOV, sx: SX(0.2), sy: SY(0, 0.26) },
+    // ...then cranes down onto the gold collar while orbiting it: the fixed
+    // studio light travels across the brushed gold
+    { az: A(12), r: R(M(0.66), 1.75), y: 0.8, ty: 0.78, fov: MACRO_FOV, sx: SX(0.2), sy: SY(0, layout.short ? 0.26 : 0.14) },
+    // 04 · ATMOSPHERE: thrown back through the veil, still arcing right; the
+    // bottle small and far
+    { az: A(24), r: R(5.4, 1.12), y: 0.95, ty: 0.55, fov: 30, sx: SX(0), sy: SY(0, 0.05) },
+    // ...drifting on sideways through the smoke
+    { az: A(40), r: R(4.9, 1.12), y: 0.72, ty: 0.55, fov: 30, sx: SX(0), sy: SY(0.01, 0.05) },
+    // 05 · OLFACTORY WORLD — TOP: arcing back in close, looking down onto the stopper
+    { az: A(6), r: R(1.045), y: 1.08, ty: 0.8, fov: 30, sx: SX(0.13), sy: SY(0.05, 0.2) },
+    // HEART: arc round to the side, tight on the label band
+    { az: A(62), r: R(1.05, 1.6), y: 0.62, ty: 0.58, fov: 30, sx: SX(0.16), sy: SY(0, 0.26) },
+    // BASE: down toward the lower glass, just above the plinth
+    { az: A(28), r: R(1.28, 2.0), y: 0.19, ty: SY(0.34, 0.42), fov: 30, sx: SX(0.14), sy: SY(0.02, 0.34) },
+    // 06 · SIGNATURE: continuing left and out to the full bottle, centred
+    { az: A(-14), r: d * 1.28, y: 0.72, ty: 0.5, fov: 30, sx: SX(0.02), sy: SY(0.02, 0.07) },
+    // ...a slow cinematic push while the bottle turns its mark to the lens
+    { az: A(4), r: d * 1.08, y: 0.6, ty: 0.5, fov: 30, sx: SX(0.03), sy: SY(0.02, 0.08) },
+    // 07 · CRAFT: arc left and in to the engraving band (azimuth not
+    // phone-scaled, so ROT.craftA keeps the mark square to the lens everywhere)
+    { az: -20, r: R(M(0.72), 1.8), y: 0.55, ty: 0.51, fov: MACRO_FOV, sx: SX(0.06), sy: SY(0, 0.03) },
+    // ...then a slow macro track down and round across the cut facets
+    { az: A(-2), r: R(M(0.95), 1.8), y: 0.4, ty: 0.3, fov: MACRO_FOV, sx: SX(0.04), sy: SY(0, 0.03) },
+    // 08 · MONUMENT: pull back low and wide, carrying on round past centre
+    { az: A(14), r: d * 1.14, y: 0.3, ty: 0.52, fov: 30, sx: 0, sy: SY(0.06, 0.1) },
+    // 09 · CTA: arc back and settle on Scene 1's framing, a touch closer (the bookend)
+    { az: 0, r: d * 0.93, y: 0.539, ty: 0.5, fov: 30, sx: layout.shiftX, sy: layout.shiftY },
   ];
-  return keys;
 }
 
 const CHANNELS = ['az', 'lr', 'y', 'ty', 'fov', 'sx', 'sy'];
@@ -115,10 +148,11 @@ export function samplePath(keys, k0, u, out) {
 }
 
 // Copy columns must never reach the bottle: the narrowest left edge of the
-// bottle across the chapter compositions (Scenes 2–5), in px.
+// bottle across the compositions that carry left-hand copy, in px.
+const COPY_KEYS = [KEY.orbitA, KEY.orbitB, KEY.top, KEY.heart, KEY.base];
 export function chapterBottleLeft(keys, w, h) {
   let left = Infinity;
-  for (const k of keys.slice(1, 5)) {
+  for (const k of COPY_KEYS.map((i) => keys[i])) {
     const dist = Math.hypot(k.r, k.y - k.ty);
     const fraction = 1 / (2 * dist * Math.tan((k.fov / 2) * DEG));
     left = Math.min(left, (0.5 + k.sx) * w - (fraction * h * 0.56) / 2);

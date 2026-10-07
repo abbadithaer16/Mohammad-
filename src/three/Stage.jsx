@@ -2,14 +2,14 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { MeshReflectorMaterial } from '@react-three/drei';
 import * as THREE from 'three';
-import { stage } from '../motion/stage';
+import { BG_FOLLOW, stage } from '../motion/stage';
 
 const PLINTH_R = 0.52;
 const PLINTH_H = 0.7;
 
 // --- backdrop: near-black studio sweep with a warm pool under the lamp -------
 const backdropShader = {
-  uniforms: { uLamp: { value: 0 }, uHaze: { value: 0 }, uTime: { value: 0 }, uFlood: { value: 0 }, uHue: { value: 0 }, uWood: { value: 0 }, uDim: { value: 0 }, uBaseGlow: { value: 0 }, uBaseGlowPos: { value: new THREE.Vector2() } },
+  uniforms: { uLamp: { value: 0 }, uHaze: { value: 0 }, uTime: { value: 0 }, uFlood: { value: 0 }, uHue: { value: 0 }, uWood: { value: 0 }, uDim: { value: 0 }, uBaseGlow: { value: 0 }, uBaseGlowPos: { value: new THREE.Vector2() }, uWallAz: { value: 0 }, uMotion: { value: 1 } },
   // the wall turns with the camera (see Stage), so its pools are authored in
   // the wall's own plane: x across, y = world height
   vertexShader: /* glsl */ `
@@ -21,8 +21,20 @@ const backdropShader = {
   fragmentShader: /* glsl */ `
     uniform float uLamp; uniform float uHaze; uniform float uTime; uniform float uFlood; uniform float uHue;
     uniform float uWood; uniform float uDim; uniform float uBaseGlow; uniform vec2 uBaseGlowPos;
+    uniform float uWallAz; uniform float uMotion;
     varying vec3 vWorld;
     float hash(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
+    float vnoise(vec2 p) {
+      vec2 i = floor(p), f = fract(p);
+      vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i), hash(i + vec2(1, 0)), u.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), u.x), u.y);
+    }
+    float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * vnoise(p); p = p * 2.02 + 7.3; a *= 0.5; } return v; }
+    // the wall only partly follows the camera; this is the WORLD azimuth of a
+    // point on it, so anything placed by it stays put in the studio and
+    // slides across the frame as the camera orbits (true parallax)
+    float worldAngle() { return uWallAz + 3.14159265 - atan(vWorld.x / 5.0); }
+    float spill(float wa, float at, float w) { float d = (wa - at) / w; return exp(-d * d); }
     void main() {
       vec3 col = vec3(0.010, 0.009, 0.008);
       // soft warm pool behind the bottle, falling off to black
@@ -62,6 +74,16 @@ const backdropShader = {
       // bottle (position projected per frame), seen through the glass
       vec2 bg = (vWorld.xy - uBaseGlowPos) * vec2(0.55, 0.85);
       col += vec3(0.105, 0.046, 0.012) * exp(-dot(bg, bg) * 1.3) * uBaseGlow;
+      // studio depth: two faint, tall spills of light on the far wall, fixed in
+      // the world. They drift past behind the bottle as the camera travels.
+      float wa = worldAngle();
+      float tall = exp(-pow((vWorld.y - 1.3) * 0.55, 2.0));
+      float spills = spill(wa, 3.14159265 - 0.62, 0.2) + 0.7 * spill(wa, 3.14159265 + 0.78, 0.24);
+      col += vec3(0.016, 0.011, 0.0068) * spills * tall * uLamp;
+      // light through slowly moving air: an extremely slow, soft modulation of
+      // whatever light is already on the wall (never adds light to black)
+      float air = fbm(vec2(wa * 2.2, vWorld.y * 0.4) + vec2(uTime * 0.009, -uTime * 0.006));
+      col *= 1.0 + (air - 0.5) * 0.18 * uMotion;
       // SCENES 6–7 · the background falls toward black
       col *= 1.0 - 0.62 * uDim;
 
@@ -142,7 +164,12 @@ const HAZE_LAYERS = [
 ];
 
 export default function Stage({ tier }) {
-  const backdrop = useMemo(() => new THREE.ShaderMaterial({ ...backdropShader, uniforms: THREE.UniformsUtils.clone(backdropShader.uniforms), depthWrite: false }), []);
+  const backdrop = useMemo(() => {
+    const m = new THREE.ShaderMaterial({ ...backdropShader, uniforms: THREE.UniformsUtils.clone(backdropShader.uniforms), depthWrite: false });
+    // reduced motion: the wall's light stays still (no drifting air)
+    m.uniforms.uMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1;
+    return m;
+  }, []);
   const cone = useMemo(
     () => new THREE.ShaderMaterial({ ...coneShader, uniforms: THREE.UniformsUtils.clone(coneShader.uniforms), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
     [],
@@ -171,7 +198,10 @@ export default function Stage({ tier }) {
     const t = clock.elapsedTime;
     // The studio wall and its haze stay behind the bottle from wherever the
     // camera stands on its path (the camera orbits up to ~60° around it).
-    const az = Math.atan2(camera.position.x, camera.position.z);
+    // The set only follows the camera part of the way (BG_FOLLOW), so the
+    // background visibly slides against the bottle during an orbit (parallax)
+    // while the wall's edges never enter the frame.
+    const az = Math.atan2(camera.position.x, camera.position.z) * BG_FOLLOW;
     v.n.set(Math.sin(az), 0, Math.cos(az));
     v.r.set(Math.cos(az), 0, -Math.sin(az));
     v.c.copy(v.n).multiplyScalar(-5);
@@ -192,6 +222,7 @@ export default function Stage({ tier }) {
     backdrop.uniforms.uTime.value = t;
     backdrop.uniforms.uFlood.value = stage.flood;
     backdrop.uniforms.uHue.value = stage.hue;
+    backdrop.uniforms.uWallAz.value = az;
     cone.uniforms.uAmount.value = stage.lamp * 0.05;
     hazeMats.forEach((m, i) => {
       m.uniforms.uTime.value = t;

@@ -9,8 +9,8 @@ gsap.registerPlugin(ScrollToPlugin);
 export const DESTINATIONS = {
   top: 0,
   scent: HOLDS.s2, // the approach, composed: "An impression before a word."
-  notes: HOLDS.s3, // top notes, composed
-  signature: HOLDS.s8, // the return: the bottle, from every angle
+  notes: HOLDS.s5, // the olfactory world: top notes, composed
+  signature: HOLDS.s6, // the signature shot, from every angle
   finale: JOURNEY_VH, // final hero + CTA
 };
 

@@ -40,6 +40,8 @@ export default function CameraRig() {
     const onPath = Math.min(1, stage.cam);
     const amp = layout.parallax * stage.idle * (1 - onPath * 0.75) * (1 - stage.interact * 0.7);
 
+    // holds are slow travel along the path itself (journeyTimeline `drift`),
+    // so the lens only adds damping and the pointer's small orbit offset
     pose.az = damp(pose.az, sample.az + pointer.x * 1.4 * amp, 3.4, dt);
     pose.r = damp(pose.r, sample.r, 3.4, dt);
     pose.y = damp(pose.y, sample.y - pointer.y * 0.03 * amp, 3.0, dt);
