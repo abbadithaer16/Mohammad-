@@ -70,15 +70,15 @@ const site: SiteConfig = {
       {
         src: '/images/yahya/engine.jpg',
         alt: { ar: 'لقطة قريبة لمحرك أثناء إعادة بنائه في الورشة' },
-        width: 464,
-        height: 832,
+        width: 941,
+        height: 1672,
         focus: '50% 40%',
       },
       {
         src: '/images/yahya/kia-service.jpg',
         alt: { ar: 'سيارة كيا مفتوحة الغطاء أثناء الصيانة داخل الورشة' },
-        width: 464,
-        height: 832,
+        width: 937,
+        height: 1679,
         focus: '50% 55%',
       },
       {
