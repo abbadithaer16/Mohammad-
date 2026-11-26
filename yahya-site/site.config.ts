@@ -43,27 +43,29 @@ const site: SiteConfig = {
       height: 476,
       focus: '50% 50%',
     },
-    // Cropped from the center's promo poster. The sign text behind him is softened and the
-    // "CERTIFIED" chest patch is blurred (not a confirmed fact). A real photo can replace it.
+    // Cropped from the center's promo poster. The sign text behind him is softened (it
+    // misspells the name and the area). A real photo can replace it.
     engineer: {
       src: '/images/yahya/engineer.jpg',
       alt: { ar: 'المهندس يحيى العبسي بزي العمل' },
-      width: 370,
-      height: 515,
+      width: 420,
+      height: 580,
       focus: '50% 30%',
     },
     gallery: [
+      // storefront-2 / -3: photo part of the client's banners (headline, bottom text and the
+      // Hyundai|Kia badge are cropped off).
       {
         src: '/images/yahya/storefront-2.jpg',
         alt: { ar: 'واجهة المركز وسيارات الزبائن أمام مداخل الورشة' },
-        width: 1120,
-        height: 476,
+        width: 1662,
+        height: 550,
       },
       {
         src: '/images/yahya/storefront-3.jpg',
         alt: { ar: 'واجهة المركز من الشارع وسيارات أمام الورشة' },
-        width: 1120,
-        height: 476,
+        width: 1366,
+        height: 456,
       },
       {
         src: '/images/yahya/engine.jpg',
@@ -82,8 +84,8 @@ const site: SiteConfig = {
       {
         src: '/images/yahya/brands-wall.jpg',
         alt: { ar: 'جدار الورشة بلوحات هيونداي وكيا وصور من العمل' },
-        width: 900,
-        height: 783,
+        width: 941,
+        height: 818,
         focus: '50% 30%',
       },
     ],
