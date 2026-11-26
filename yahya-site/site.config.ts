@@ -64,8 +64,8 @@ const site: SiteConfig = {
       {
         src: '/images/yahya/storefront-3.jpg',
         alt: { ar: 'واجهة المركز من الشارع وسيارات أمام الورشة' },
-        width: 1366,
-        height: 456,
+        width: 1661,
+        height: 568,
       },
       {
         src: '/images/yahya/engine.jpg',

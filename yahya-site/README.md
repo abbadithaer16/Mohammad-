@@ -62,9 +62,10 @@ What was done to the supplied photos:
 
 - `hero.jpg`: number plates blurred; the bottom 9 pixel rows trimmed (leftover caption text).
 - `storefront-2.jpg`, `storefront-3.jpg`: the photo part of the client's improved banners. The
-  headline, the bottom text (it has a typo, "الكهربانية") and the Hyundai|Kia logo badge in the
-  corner are cropped off, so the site does not look like an official dealer. A plate with
-  number-like characters on a car inside the workshop is blurred.
+  headline, the bottom text and the Hyundai|Kia logo badge in the corner are cropped off, so the
+  site does not look like an official dealer. A plate with number-like characters on a car inside
+  the workshop (storefront-2) is blurred, and so is the neighbouring blue sign in storefront-3,
+  which names another repair center.
 - `brands-wall.jpg`: cropped below the "HYUNDAI MOBIS" board, so the site does not suggest a
   Mobis partnership. Only the Hyundai and Kia frames and the two work photos remain.
 - `engineer.jpg`: cropped from the client's poster (head to belt). The sign text behind him is
