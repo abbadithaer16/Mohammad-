@@ -43,6 +43,15 @@ const site: SiteConfig = {
       height: 476,
       focus: '50% 50%',
     },
+    // Cropped from the center's promo poster. The sign text behind him is softened and the
+    // "CERTIFIED" chest patch is blurred (not a confirmed fact). A real photo can replace it.
+    engineer: {
+      src: '/images/yahya/engineer.jpg',
+      alt: { ar: 'المهندس يحيى العبسي بزي العمل' },
+      width: 370,
+      height: 515,
+      focus: '50% 30%',
+    },
     gallery: [
       {
         src: '/images/yahya/storefront-2.jpg',

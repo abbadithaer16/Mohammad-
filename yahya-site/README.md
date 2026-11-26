@@ -56,6 +56,7 @@ Photos live in `public/images/yahya/`. To swap one, **replace the file with the 
 | `storefront-2.jpg`, `storefront-3.jpg` | Gallery | Wide |
 | `engine.jpg`, `kia-service.jpg` | Gallery | Tall (phone photos) |
 | `brands-wall.jpg` | Gallery | About 900×783 |
+| `engineer.jpg` | "عن المركز" (portrait, name as caption) | Optional: delete `images.engineer` to hide it |
 
 What was done to the supplied photos:
 
@@ -64,6 +65,10 @@ What was done to the supplied photos:
 - `brands-wall.jpg` is cropped below the "HYUNDAI MOBIS" board, so the site does not suggest a
   Mobis partnership. Only the Hyundai and Kia frames and the two work photos remain.
 - `logo.png` was resized to 960px and compressed (same look, 0.4 MB instead of 1.6 MB).
+- `engineer.jpg` is cropped from the center's promo poster (a phone screenshot, so it is low
+  resolution). The sign text behind him is softened (it misspells البيادر as "البيدر") and the
+  chest patch reading "HYBRID • EV CERTIFIED" is blurred, because that certification is not
+  confirmed. Replace it with a real photo or the poster's original file when available.
 
 New photos must have plates blurred before they go in. Every build creates small WebP versions
 automatically (`public/images/_generated`, not committed).
@@ -93,8 +98,8 @@ command and publish folder come from [`netlify.toml`](netlify.toml).
 ## Checked before delivery
 
 - Screenshots at 375px and 1440px reviewed; no horizontal overflow; RTL throughout.
-- Lighthouse (served with gzip, like Netlify): mobile Performance 98, Accessibility 100,
-  Best Practices 100, SEO 100; desktop 100 / 100 / 100 / 100.
+- Lighthouse (served with gzip, like Netlify): mobile Performance 92–98 (varies run to run),
+  Accessibility 100, Best Practices 100, SEO 100; desktop 100 / 100 / 100 / 100.
 - SEO: Arabic title/description, Open Graph image, `sitemap.xml`, `robots.txt`, and JSON-LD with
   one `AutoRepair` entry for the single location.
 - Motion: only the hero text fades in once on load; turned off for visitors who prefer reduced

@@ -136,7 +136,9 @@ function validate(c: SiteConfig) {
   })) {
     if (!/^https:\/\//.test(url)) problems.push(`${key} must start with https://`);
   }
-  const files = [c.images.logo, c.images.hero, ...c.images.gallery].map((p) => p.src);
+  const photos = [c.images.logo, c.images.hero, ...c.images.gallery];
+  if (c.images.engineer) photos.push(c.images.engineer);
+  const files = photos.map((p) => p.src);
   files.push(c.images.og, c.images.icon, c.images.appleIcon);
   for (const f of files) {
     if (!existsSync(path.join(process.cwd(), 'public', f))) problems.push(`Image not found: public${f}`);

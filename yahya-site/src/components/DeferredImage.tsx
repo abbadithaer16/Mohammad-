@@ -4,8 +4,9 @@ import Image, { type ImageProps } from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * A `fill` image that is only added once its box is within ~600px of the screen.
- * Keeps photos further down the page out of the first load (faster on mobile data).
+ * A `fill` image that is only added once its box is within ~600px of the screen, and never
+ * before the page has finished loading. Keeps photos further down the page out of the first
+ * load, so the hero photo (the largest thing on screen) gets the bandwidth first.
  * The parent must be `position: relative` with a size (e.g. an aspect-ratio box).
  */
 export function DeferredImage(props: ImageProps) {
@@ -28,8 +29,13 @@ export function DeferredImage(props: ImageProps) {
       },
       { rootMargin: '600px 0px' },
     );
-    observer.observe(el);
-    return () => observer.disconnect();
+    const start = () => observer.observe(el);
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start, { once: true });
+    return () => {
+      window.removeEventListener('load', start);
+      observer.disconnect();
+    };
   }, []);
 
   return (

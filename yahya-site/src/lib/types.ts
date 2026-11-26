@@ -72,6 +72,8 @@ export type SiteConfig = {
     logo: Photo;
     /** Storefront photo shown in the hero. */
     hero: Photo;
+    /** Portrait of the lead engineer, shown in "عن المركز" (optional). */
+    engineer?: Photo;
     gallery: Photo[];
     /** Social preview image, 1200×630 JPG (shown when the link is shared on WhatsApp etc.). */
     og: string;
