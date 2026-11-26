@@ -52,6 +52,8 @@ const site: SiteConfig = {
       height: 580,
       focus: '50% 30%',
     },
+    // Order matters: it matches the layout in src/components/sections/Gallery.tsx
+    // (wide · [wall | engine | kia] · wide).
     gallery: [
       // storefront-2 / -3: photo part of the client's banners (headline, bottom text and the
       // Hyundai|Kia badge are cropped off).
@@ -62,10 +64,12 @@ const site: SiteConfig = {
         height: 550,
       },
       {
-        src: '/images/yahya/storefront-3.jpg',
-        alt: { ar: 'واجهة المركز من الشارع وسيارات أمام الورشة' },
-        width: 1661,
-        height: 568,
+        // Tall crop below the Hyundai Mobis board, shown in a portrait tile.
+        src: '/images/yahya/brands-wall.jpg',
+        alt: { ar: 'جدار الورشة بلوحات هيونداي وكيا وصور من العمل' },
+        width: 870,
+        height: 1128,
+        focus: 'center 35%',
       },
       {
         src: '/images/yahya/engine.jpg',
@@ -79,14 +83,13 @@ const site: SiteConfig = {
         alt: { ar: 'سيارة كيا مفتوحة الغطاء أثناء الصيانة داخل الورشة' },
         width: 937,
         height: 1679,
-        focus: '50% 55%',
+        focus: '50% 62%', // keeps the KIA badge in the 4:5 tile
       },
       {
-        src: '/images/yahya/brands-wall.jpg',
-        alt: { ar: 'جدار الورشة بلوحات هيونداي وكيا وصور من العمل' },
-        width: 941,
-        height: 818,
-        focus: '50% 30%',
+        src: '/images/yahya/storefront-3.jpg',
+        alt: { ar: 'واجهة المركز من الشارع وسيارات أمام الورشة' },
+        width: 1661,
+        height: 568,
       },
     ],
     og: '/images/yahya/og.jpg',

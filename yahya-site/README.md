@@ -55,7 +55,7 @@ Photos live in `public/images/yahya/`. To swap one, **replace the file with the 
 | `hero.jpg` | Hero (storefront with the Electric \| Hybrid sign) | Wide, about 1120×476 |
 | `storefront-2.jpg`, `storefront-3.jpg` | Gallery | Wide |
 | `engine.jpg`, `kia-service.jpg` | Gallery | Tall (phone photos) |
-| `brands-wall.jpg` | Gallery | About 900×783 |
+| `brands-wall.jpg` | Gallery, portrait 4:5 tile (`focus: 'center 35%'`) | Tall, about 870×1128; keep all four frames in the top two-thirds |
 | `engineer.jpg` | "عن المركز" (portrait, name as caption) | Optional: delete `images.engineer` to hide it |
 
 What was done to the supplied photos:
@@ -67,7 +67,9 @@ What was done to the supplied photos:
   the workshop (storefront-2) is blurred, and so is the neighbouring blue sign in storefront-3,
   which names another repair center.
 - `brands-wall.jpg`: cropped below the "HYUNDAI MOBIS" board, so the site does not suggest a
-  Mobis partnership. Only the Hyundai and Kia frames and the two work photos remain.
+  Mobis partnership, and trimmed to the width of the frames. It is cut tall (870×1128) for its
+  portrait tile: the Hyundai and Kia frames and the two photos of the engineer fill the top, and
+  `center 35%` positions it in the tile.
 - `engineer.jpg`: cropped from the client's poster (head to belt). The sign text behind him is
   softened: it misspells the name ("العيسي") and the area ("البيدر"). The poster's title calls
   him "د." (Dr.); the site uses "م." as given, so the title is not part of the crop.
